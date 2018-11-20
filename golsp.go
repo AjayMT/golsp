@@ -13,23 +13,18 @@ import (
 type STNodeType int
 
 const (
-	Program STNodeType = 0
-	Expr STNodeType = 1
-	String STNodeType = 2
-	Number STNodeType = 3
-	Identifier STNodeType = 4
+	STNodeTypeProgram STNodeType = 0
+	STNodeTypeExpression STNodeType = 1
+	STNodeTypeStringLiteral STNodeType = 2
+	STNodeTypeNumberLiteral STNodeType = 3
+	STNodeTypeIdentifier STNodeType = 4
+	STNodeTypeComment = 5
 )
 
 type STNode struct {
 	Head string
 	Type STNodeType
 	Children []STNode
-}
-
-var TokenDelimiters = map[string]string{
-	"": "",
-	"[": "]",
-	"]": "",
 }
 
 var LiteralDelimiters = map[string]string{
@@ -39,9 +34,20 @@ var LiteralDelimiters = map[string]string{
 
 var LiteralEscape = '\\'
 
+var LiteralDelimiterTypes = map[string]STNodeType{
+	"\"": STNodeTypeStringLiteral,
+	"#": STNodeTypeComment,
+}
+
+var TokenDelimiters = map[string]string{
+	"": "",
+	"[": "]",
+	"]": "",
+}
+
 var TokenDelimiterTypes = map[string]STNodeType{
-	"": Program,
-	"[": Expr,
+	"": STNodeTypeProgram,
+	"[": STNodeTypeExpression,
 }
 
 func MakeST(tokens []string) STNode {
@@ -59,11 +65,17 @@ func makeST(head string, tokens []string) (STNode, []string) {
 	}
 
 	if !delimiter {
-		current.Type = Identifier
+		current.Type = STNodeTypeIdentifier
 		_, err := strconv.ParseFloat(head, 64)
 
 		if err == nil {
-			current.Type = Number
+			current.Type = STNodeTypeNumberLiteral
+		}
+
+		literaltype, literal := LiteralDelimiterTypes[string(head[0])]
+
+		if literal {
+			current.Type = literaltype
 		}
 
 		return current, tokens
