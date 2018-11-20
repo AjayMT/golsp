@@ -51,6 +51,23 @@ var TokenDelimiterTypes = map[string]STNodeType{
 
 func MakeST(tokens []string) STNode {
 	root, _ := makeST(tokens[0], tokens[1:])
+
+	return pruneComments(root)
+}
+
+func pruneComments(root STNode) STNode {
+	var newchildren []STNode
+
+	for _, child := range root.Children {
+		if child.Type == STNodeTypeComment {
+			continue
+		}
+
+		newchildren = append(newchildren, pruneComments(child))
+	}
+
+	root.Children = newchildren
+
 	return root
 }
 
