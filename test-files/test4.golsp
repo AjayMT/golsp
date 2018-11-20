@@ -1,0 +1,6 @@
+
+["string literal # comment" # actual comment
+ [[nested expr]
+  "string [literal]"]]
+
+[-1.0 -3 4 "1" ["-30"]] # 12 -12

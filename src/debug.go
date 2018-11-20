@@ -1,4 +1,6 @@
 
+// Debugging functions
+
 package main
 
 import (
