@@ -149,37 +149,10 @@ func Tokenize(input string) []string {
 	return tokens
 }
 
-func printST(root STNode) string {
-	str := ""
-
-	str += "\nHead: \"" + root.Head +
-		"\"\nType: " + strconv.Itoa(int(root.Type)) +
-		"\nChildren: ("
-
-	for _, child := range root.Children {
-		childstr := printST(child)
-		lines := strings.Split(childstr, "\n")
-		for i := 0; i < len(lines); i++ {
-			lines[i] = "  " + lines[i]
-		}
-
-		str += strings.Join(lines, "\n")
-	}
-
-	str += "\n),"
-
-	return str
-}
-
 func main() {
 	input, _ := ioutil.ReadAll(os.Stdin)
 
 	tokens := Tokenize(string(input))
-
-	for i, t := range tokens {
-		fmt.Printf("%d: %v\n", i, t)
-	}
-
-	// tree := MakeST(tokens)
-	// fmt.Printf("Syntax tree:\n%v\n", printST(tree))
+	tree := MakeST(tokens)
+	fmt.Printf("Syntax tree:\n%v\n", PrintST(tree))
 }
