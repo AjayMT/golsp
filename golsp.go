@@ -26,17 +26,22 @@ type STNode struct {
 	Children []STNode
 }
 
-var Delimiters = map[string]string{
+var TokenDelimiters = map[string]string{
 	"": "",
 	"[": "]",
-	"]": "[",
-	"\"": "\"",
+	"]": "",
 }
 
-var DelimiterTypes = map[string]STNodeType{
+var LiteralDelimiters = map[string]string{
+	"\"": "\"",
+	"#": "\n",
+}
+
+var LiteralEscape = '\\'
+
+var TokenDelimiterTypes = map[string]STNodeType{
 	"": Program,
 	"[": Expr,
-	"\"": String,
 }
 
 func MakeST(tokens []string) STNode {
@@ -45,7 +50,7 @@ func MakeST(tokens []string) STNode {
 }
 
 func makeST(head string, tokens []string) (STNode, []string) {
-	nodetype, delimiter := DelimiterTypes[head]
+	nodetype, delimiter := TokenDelimiterTypes[head]
 
 	current := STNode{
 		Head: head,
@@ -68,7 +73,7 @@ func makeST(head string, tokens []string) (STNode, []string) {
 		token := tokens[0]
 		tokens = tokens[1:]
 
-		if token == Delimiters[current.Head] {
+		if token == TokenDelimiters[current.Head] {
 			return current, tokens
 		}
 
@@ -80,6 +85,30 @@ func makeST(head string, tokens []string) (STNode, []string) {
 	return current, tokens
 }
 
+func parseLiteral(escape rune, delimiter string, input []rune) (int, string) {
+	str := ""
+	i := 0
+
+	for ; i < len(input); i++ {
+		if input[i] == escape {
+			str += string(input[i])
+			i++
+			str += string(input[i])
+			continue
+		}
+
+		if string(input[i]) == LiteralDelimiters[delimiter] {
+			str += LiteralDelimiters[delimiter]
+			i++
+			break
+		}
+
+		str += string(input[i])
+	}
+
+	return i, str
+}
+
 func Tokenize(input string) []string {
 	input = strings.TrimSpace(input)
 	runes := []rune(input)
@@ -87,8 +116,19 @@ func Tokenize(input string) []string {
 	token := ""
 	tokens := []string{token}
 
-	for _, r := range runes {
-		_, delimiter := Delimiters[string(r)]
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		_, literal := LiteralDelimiters[string(r)]
+
+		if literal {
+			len, str := parseLiteral(LiteralEscape, string(r), runes[i + 1:])
+			i += len
+			tokens = append(tokens, string(r) + str)
+			continue
+		}
+
+		_, delimiter := TokenDelimiters[string(r)]
+
 		if !delimiter && !unicode.IsSpace(r) {
 			token += string(r)
 			continue
@@ -135,8 +175,11 @@ func main() {
 	input, _ := ioutil.ReadAll(os.Stdin)
 
 	tokens := Tokenize(string(input))
-	fmt.Printf("tokens: %v\n", tokens)
 
-	tree := MakeST(tokens)
-	fmt.Printf("Syntax tree:\n%v\n", printST(tree))
+	for i, t := range tokens {
+		fmt.Printf("%d: %v\n", i, t)
+	}
+
+	// tree := MakeST(tokens)
+	// fmt.Printf("Syntax tree:\n%v\n", printST(tree))
 }
