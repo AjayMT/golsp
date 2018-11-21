@@ -89,7 +89,7 @@ func Eval(root STNode) STNode {
 }
 
 func eval(scope GolspScope, root STNode) STNode {
-	if root.Type == STNodeTypeProgram {
+	if root.Type == STNodeTypeScope {
 		var result STNode
 
 		for _, child := range root.Children {
@@ -142,6 +142,6 @@ func eval(scope GolspScope, root STNode) STNode {
 	}
 
 	// eval function
-	
+
 	return STNode{Head: "0", Type: STNodeTypeNumberLiteral, Children: []STNode{}}
 }

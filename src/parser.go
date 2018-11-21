@@ -12,7 +12,7 @@ import (
 type STNodeType int
 
 const (
-	STNodeTypeProgram STNodeType = 0
+	STNodeTypeScope STNodeType = 0
 	STNodeTypeExpression STNodeType = 1
 	STNodeTypeStringLiteral STNodeType = 2
 	STNodeTypeNumberLiteral STNodeType = 3
@@ -45,7 +45,7 @@ var TokenDelimiters = map[string]string{
 }
 
 var TokenDelimiterTypes = map[string]STNodeType{
-	"": STNodeTypeProgram,
+	"": STNodeTypeScope,
 	"[": STNodeTypeExpression,
 }
 
