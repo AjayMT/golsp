@@ -6,6 +6,8 @@ package main
 import (
 	"math"
 	"fmt"
+	"strings"
+	"strconv"
 )
 
 type GolspScope map[string]GolspFunction
@@ -37,11 +39,27 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
 	text := arguments[0].Head
 	text = text[1:len(text) - 1]
 
-	fmt.Printf(text)
+	var args []interface{}
+
+	for _, v := range arguments[1:] {
+		if v.Type == STNodeTypeNumberLiteral {
+			n, _ := strconv.ParseFloat(v.Head, 64)
+			args = append(args, n)
+		} else if v.Type == STNodeTypeStringLiteral {
+			str := v.Head[1:len(v.Head) - 1]
+			args = append(args, str)
+		} else {
+			args = append(args, v.Head)
+		}
+	}
+
+	// TODO: replace all literal escape sequences with actual escape characters
+	text = strings.Replace(text, "\\n", "\n", -1)
+
+	fmt.Printf(text, args...)
 
 	return arguments[0]
 }
-
 
 func compareNodes(a STNode, b STNode) bool {
 	if a.Type == STNodeTypeIdentifier {
