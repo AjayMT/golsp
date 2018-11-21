@@ -113,12 +113,12 @@ func makeST(head string, tokens []string) (STNode, []string) {
 	return current, tokens
 }
 
-func parseLiteral(escape rune, delimiter string, input []rune) (int, string) {
+func parseLiteral(delimiter string, input []rune) (int, string) {
 	str := ""
 	i := 0
 
 	for ; i < len(input); i++ {
-		if input[i] == escape {
+		if input[i] == LiteralEscape {
 			str += string(input[i])
 			i++
 			str += string(input[i])
@@ -149,7 +149,7 @@ func Tokenize(input string) []string {
 		_, literal := LiteralDelimiters[string(r)]
 
 		if literal {
-			len, str := parseLiteral(LiteralEscape, string(r), runes[i + 1:])
+			len, str := parseLiteral(string(r), runes[i + 1:])
 			i += len
 			tokens = append(tokens, string(r) + str)
 			continue
