@@ -42,6 +42,17 @@ var Builtins = GolspScope{
 		BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinEquals},
 	},
 
+	"+": GolspFunction{
+		FunctionPatterns: make([][]STNode, 0),
+		FunctionBodies: make([]STNode, 0),
+		BuiltinPatterns: [][]STNode{
+			[]STNode{
+				STNode{Head: "n", Type: STNodeTypeIdentifier, Children: make([]STNode, 0)},
+			},
+		},
+		BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
+	},
+
 	"printf": GolspFunction{
 		FunctionPatterns: make([][]STNode, 0),
 		FunctionBodies: make([]STNode, 0),
@@ -133,6 +144,52 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 	return value
 }
 
+func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
+	for i, _ := range arguments {
+		for arguments[i].Head != "undefined" &&
+			(arguments[i].Type == STNodeTypeIdentifier ||
+			arguments[i].Type == STNodeTypeExpression) {
+			arguments[i] = eval(scope, arguments[i])
+		}
+	}
+
+	argtype := arguments[0].Type
+
+	for _, a := range arguments {
+		if a.Type != argtype {
+			panic("cannot add arguments of different types")
+		}
+	}
+
+	nsum := 0.0
+	strsum := ""
+
+	for _, v := range arguments {
+		text := v.Head
+		if argtype == STNodeTypeStringLiteral {
+			text = text[1:len(text) - 1]
+		}
+
+		n, _ := strconv.ParseFloat(text, 64)
+		nsum += n
+		strsum += text
+	}
+
+	if argtype == STNodeTypeStringLiteral {
+		return STNode{
+			Head: "\"" + strsum + "\"",
+			Type: STNodeTypeStringLiteral,
+			Children: make([]STNode, 0),
+		}
+	}
+
+	return STNode{
+		Head: fmt.Sprintf("%v", nsum),
+		Type: STNodeTypeNumberLiteral,
+		Children: make([]STNode, 0),
+	}
+}
+
 func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
 	text := arguments[0].Head
 	text = text[1:len(text) - 1]
@@ -159,6 +216,7 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
 
 	// TODO: replace all literal escape sequences with actual escape characters
 	text = strings.Replace(text, "\\n", "\n", -1)
+	text = strings.Replace(text, "\\\"", "\"", -1)
 
 	fmt.Printf(text, args...)
 

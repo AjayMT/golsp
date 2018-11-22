@@ -1,0 +1,15 @@
+
+[= [incr n] [+ n 1]]
+[= [double x] [+ x x]]
+# [= double2 double]
+
+[printf "1 + 2 = %v\n" [incr 2]]
+[printf "2 * 3 = %v\n" [double 3]]
+[printf "1 + (2 * 4) = %v\n" [incr [double 4]]]
+[printf "double2: 2 * 6 = %v\n" [double2 6]]
+
+[= [doge "chuchu"] "xyz"]
+[= [doge n] n]
+
+[printf "[doge \"chuchu\"]: %v\n" [doge "chuchu"]]
+[printf "[doge \"hello\"]: %v\n" [doge "hello"]]

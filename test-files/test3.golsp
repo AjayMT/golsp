@@ -1,3 +1,0 @@
-["string \" literal" [nested expression]] # comment
-# another comment
-[hello [121212] test]
