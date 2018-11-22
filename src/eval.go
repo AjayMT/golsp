@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-type GolspScope map[string]GolspFunction
+type GolspScope map[string]GolspObject
 
 type GolspBuiltinFunctionBody func(GolspScope, []STNode) STNode
 
@@ -22,72 +22,124 @@ type GolspFunction struct {
 	BuiltinBodies []GolspBuiltinFunctionBody
 }
 
-var Builtins = GolspScope{
-	"undefined": GolspFunction{
-		FunctionPatterns: make([][]STNode, 0),
-		FunctionBodies: []STNode{GolspUndefinedIdentifier},
-		BuiltinPatterns: make([][]STNode, 0),
-		BuiltinBodies: make([]GolspBuiltinFunctionBody, 0),
-	},
-
-	"=": GolspFunction{
-		FunctionPatterns: make([][]STNode, 0),
-		FunctionBodies: make([]STNode, 0),
-		BuiltinPatterns: [][]STNode{
-			[]STNode{
-				STNode{Head: "a", Type: STNodeTypeIdentifier, Children: make([]STNode, 0)},
-				STNode{Head: "b", Type: STNodeTypeIdentifier, Children: make([]STNode, 0)},
-			},
-		},
-		BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinEquals},
-	},
-
-	"+": GolspFunction{
-		FunctionPatterns: make([][]STNode, 0),
-		FunctionBodies: make([]STNode, 0),
-		BuiltinPatterns: [][]STNode{
-			[]STNode{
-				STNode{Head: "n", Type: STNodeTypeIdentifier, Children: make([]STNode, 0)},
-			},
-		},
-		BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
-	},
-
-	"printf": GolspFunction{
-		FunctionPatterns: make([][]STNode, 0),
-		FunctionBodies: make([]STNode, 0),
-		BuiltinPatterns: [][]STNode{
-			[]STNode{
-				STNode{Head: "s", Type: STNodeTypeIdentifier, Children: make([]STNode, 0)},
-			},
-		},
-		BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPrintf},
-	},
+type GolspObject struct {
+	IsFunction bool
+	Function GolspFunction
+	Value STNode
 }
 
-var GolspUndefinedIdentifier = STNode{
-	Head: "undefined",
-	Type: STNodeTypeIdentifier,
-	Children: make([]STNode, 0),
+func GolspUndefinedIdentifier() STNode {
+	return STNode{
+		Head: "undefined",
+		Type: STNodeTypeIdentifier,
+		Children: make([]STNode, 0),
+	}
+}
+
+func GolspEmptyFunction() GolspFunction {
+	return GolspFunction{
+		FunctionPatterns: make([][]STNode, 0),
+		FunctionBodies: make([]STNode, 0),
+		BuiltinPatterns: make([][]STNode, 0),
+		BuiltinBodies: make([]GolspBuiltinFunctionBody, 0),
+	}
+}
+
+var Builtins = GolspScope{
+	"undefined": GolspObject{
+		IsFunction: false,
+		Function: GolspEmptyFunction(),
+		Value: GolspUndefinedIdentifier(),
+	},
+
+	"=": GolspObject{
+		IsFunction: true,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{
+				[]STNode{
+					STNode{
+						Head: "a",
+						Type: STNodeTypeIdentifier,
+						Children: make([]STNode, 0),
+					},
+					STNode{
+						Head: "b",
+						Type: STNodeTypeIdentifier,
+						Children: make([]STNode, 0),
+					},
+				},
+			},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinEquals},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
+
+	"+": GolspObject{
+		IsFunction: true,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{
+				[]STNode{
+					STNode{
+						Head: "n",
+						Type: STNodeTypeIdentifier,
+						Children: make([]STNode, 0),
+					},
+				},
+			},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
+
+	"printf": GolspObject{
+		IsFunction: true,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{
+				[]STNode{
+					STNode{
+						Head: "s",
+						Type: STNodeTypeIdentifier,
+						Children: make([]STNode, 0),
+					},
+				},
+			},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPrintf},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
 }
 
 func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
-	if len(arguments) == 0 {
-		panic("'=' function requires at least one argument")
+	if len(arguments) != 2 {
+		return GolspUndefinedIdentifier()
 	}
 
 	symbol := arguments[0]
-	value := GolspUndefinedIdentifier
-	pattern := make([]STNode, 0)
+	value := arguments[1]
 
-	if len(arguments) > 1 {
-		value = arguments[1]
+	if symbol.Type != STNodeTypeExpression &&
+		value.Type != STNodeTypeExpression {
+		scope[symbol.Head] = GolspObject{
+			IsFunction: false,
+			Function: GolspEmptyFunction(),
+			Value: value,
+		}
+
+		return value
 	}
+
+	pattern := make([]STNode, 0)
 
 	if symbol.Type == STNodeTypeExpression {
 		head := symbol.Children[0]
 		if head.Type != STNodeTypeIdentifier {
-			panic("symbol must be identifier")
+			return GolspUndefinedIdentifier()
 		}
 
 		pattern = symbol.Children[1:]
@@ -102,19 +154,20 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 
 	_, exists := scope[symbol.Head]
 
+	// TODO: Handle case where symbol exists but is not function
+
 	if !exists {
-		scope[symbol.Head] = GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: make([][]STNode, 0),
-			BuiltinBodies: make([]GolspBuiltinFunctionBody, 0),
+		scope[symbol.Head] = GolspObject{
+			IsFunction: true,
+			Function: GolspEmptyFunction(),
+			Value: GolspUndefinedIdentifier(),
 		}
 	}
 
 	patternexists := false
 	patternindex := 0
 
-	for index, p := range scope[symbol.Head].FunctionPatterns {
+	for index, p := range scope[symbol.Head].Function.FunctionPatterns {
 		i := 0
 		for i, node := range p {
 			if i >= len(pattern) { continue }
@@ -128,18 +181,22 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 	}
 
 	if patternexists {
-		scope[symbol.Head].FunctionBodies[patternindex] = value
+		scope[symbol.Head].Function.FunctionBodies[patternindex] = value
 		return value
 	}
 
 	newfn := GolspFunction{
-		FunctionPatterns: append(scope[symbol.Head].FunctionPatterns, pattern),
-		FunctionBodies: append(scope[symbol.Head].FunctionBodies, value),
-		BuiltinPatterns: scope[symbol.Head].BuiltinPatterns,
-		BuiltinBodies: scope[symbol.Head].BuiltinBodies,
+		FunctionPatterns: append(scope[symbol.Head].Function.FunctionPatterns, pattern),
+		FunctionBodies: append(scope[symbol.Head].Function.FunctionBodies, value),
+		BuiltinPatterns: scope[symbol.Head].Function.BuiltinPatterns,
+		BuiltinBodies: scope[symbol.Head].Function.BuiltinBodies,
 	}
 
-	scope[symbol.Head] = newfn
+	scope[symbol.Head] = GolspObject{
+		IsFunction: true,
+		Function: newfn,
+		Value: GolspUndefinedIdentifier(),
+	}
 
 	return value
 }
@@ -258,22 +315,38 @@ func matchPatterns(fn GolspFunction, pattern []STNode) int {
 	return bestmatchindex
 }
 
-func Eval(root STNode) STNode {
-	defaultProgramScope := make(GolspScope)
-
-	for k, v := range Builtins {
-		defaultProgramScope[k] = v
+func resolveIdentifier(scope GolspScope, symbol STNode) STNode {
+	obj, exists := scope[symbol.Head]
+	if !exists {
+		return GolspUndefinedIdentifier()
 	}
 
-	return eval(defaultProgramScope, root)
+	if obj.IsFunction {
+		return symbol
+	}
+
+	if obj.Value.Type != STNodeTypeIdentifier ||
+		obj.Value.Head == "undefined" {
+		return obj.Value
+	}
+
+	return resolveIdentifier(scope, obj.Value)
+}
+
+func Eval(root STNode) STNode {
+	return eval(Builtins, root)
 }
 
 func eval(scope GolspScope, root STNode) STNode {
 	if root.Type == STNodeTypeScope {
-		var result STNode
+		newscope := make(GolspScope)
+		for k, v := range scope {
+			newscope[k] = v
+		}
 
+		var result STNode
 		for _, child := range root.Children {
-			result = eval(scope, child)
+			result = eval(newscope, child)
 		}
 
 		return result
@@ -287,7 +360,7 @@ func eval(scope GolspScope, root STNode) STNode {
 	// root has to be expression or identifier
 
 	if len(root.Children) == 0 && root.Type == STNodeTypeExpression {
-		panic("empty expression")
+		return GolspUndefinedIdentifier()
 	}
 
 	exprhead := root
@@ -295,14 +368,13 @@ func eval(scope GolspScope, root STNode) STNode {
 		exprhead = root.Children[0]
 	}
 
-	if exprhead.Type != STNodeTypeIdentifier {
-		// expression head (i.e function name) is not identifier, so eval it
+	for exprhead.Type == STNodeTypeExpression {
 		exprhead = eval(scope, exprhead)
 	}
 
-	if exprhead.Type != STNodeTypeIdentifier {
-		// expression head must be literal
-		// 'calling' a literal like a function simply produces the literal
+	exprhead = resolveIdentifier(scope, exprhead)
+	if exprhead.Type != STNodeTypeIdentifier ||
+		exprhead.Head == "undefined" {
 		return exprhead
 	}
 
@@ -313,11 +385,8 @@ func eval(scope GolspScope, root STNode) STNode {
 		}
 	}
 
-	fn, exists := scope[exprhead.Head]
-
-	if !exists {
-		return GolspUndefinedIdentifier
-	}
+	obj, _ := scope[exprhead.Head]
+	fn := obj.Function
 
 	builtin := len(fn.BuiltinPatterns) > 0
 	patternindex := matchPatterns(fn, arguments)
@@ -335,16 +404,31 @@ func eval(scope GolspScope, root STNode) STNode {
 	}
 
 	if len(arguments) < len(pattern) {
-		// curry function
+		return GolspUndefinedIdentifier()
 	}
 
 	for i, symbol := range pattern {
-		newscope[symbol.Head] = GolspFunction{
-			FunctionPatterns: [][]STNode{make([]STNode, 0)},
-			FunctionBodies: []STNode{arguments[i]},
-			BuiltinPatterns: make([][]STNode, 0),
-			BuiltinBodies: make([]GolspBuiltinFunctionBody, 0),
+		arg := arguments[i]
+		o := GolspObject{
+			IsFunction: false,
+			Function: GolspEmptyFunction(),
+			Value: arg,
 		}
+
+		if arg.Type == STNodeTypeExpression {
+			o.IsFunction = true
+			o.Function = GolspFunction{
+				FunctionPatterns: [][]STNode{
+					make([]STNode, 0),
+				},
+				FunctionBodies: []STNode{arg},
+				BuiltinPatterns: make([][]STNode, 0),
+				BuiltinBodies: make([]GolspBuiltinFunctionBody, 0),
+			}
+			o.Value = GolspUndefinedIdentifier()
+		}
+
+		newscope[symbol.Head] = o
 	}
 
 	return eval(newscope, fn.FunctionBodies[patternindex])

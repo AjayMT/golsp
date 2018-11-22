@@ -1,0 +1,12 @@
+
+[= [incr n] [+ n 1]]
+[= [decr n] [+ n -1]]
+
+[= [twice f x] [f [f x]]]
+
+[= [functions 0] incr]
+[= [functions 1] decr]
+
+[printf "%v\n" [[functions 0] 1]]
+[printf "%v\n" [[functions 1] 1]]
+[printf "%v\n" [twice [functions 0] 1]]
