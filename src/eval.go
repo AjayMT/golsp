@@ -54,16 +54,22 @@ func isResolved(scope GolspScope, symbol STNode) bool {
 	return false
 }
 
+func makeScope(scope GolspScope) GolspScope {
+	newscope := make(GolspScope)
+	for k, v := range scope {
+		newscope[k] = v
+	}
+
+	return newscope
+}
+
 func Eval(root STNode) STNode {
 	return eval(Builtins, root)
 }
 
 func eval(scope GolspScope, root STNode) STNode {
 	if root.Type == STNodeTypeScope {
-		newscope := make(GolspScope)
-		for k, v := range scope {
-			newscope[k] = v
-		}
+		newscope := makeScope(scope)
 
 		var result STNode
 		for _, child := range root.Children {
@@ -102,7 +108,7 @@ func eval(scope GolspScope, root STNode) STNode {
 		exprhead = eval(scope, exprhead)
 	}
 
-	if exprhead.Type != STNodeTypeIdentifier {
+	if exprhead.Type != STNodeTypeIdentifier || exprhead.Head == "undefined" {
 		return exprhead
 	}
 
@@ -122,9 +128,10 @@ func eval(scope GolspScope, root STNode) STNode {
 
 	// eval function
 
+	argscope := makeScope(scope)
 	for i, _ := range arguments {
-		for !isResolved(scope, arguments[i]) {
-			arguments[i] = eval(scope, arguments[i])
+		for !isResolved(argscope, arguments[i]) {
+			arguments[i] = eval(argscope, arguments[i])
 		}
 	}
 
@@ -144,8 +151,8 @@ func eval(scope GolspScope, root STNode) STNode {
 			continue
 		}
 
-		obj, exists := scope[arguments[i].Head]
-		if exists {
+		if arguments[i].Type == STNodeTypeIdentifier {
+			obj := argscope[arguments[i].Head]
 			newscope[symbol.Head] = obj
 		} else {
 			newscope[symbol.Head] = GolspObject{

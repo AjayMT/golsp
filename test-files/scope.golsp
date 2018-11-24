@@ -1,0 +1,6 @@
+
+[= [a x] [= b x]]
+
+[printf "%v\n" a]
+[printf "%v\n" [a 1]]
+[printf "%v\n" b]
