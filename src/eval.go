@@ -122,7 +122,6 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 
 	symbol := arguments[0]
 	value := arguments[1]
-
 	if symbol.Type != STNodeTypeIdentifier &&
 		symbol.Type != STNodeTypeExpression {
 		return GolspUndefinedIdentifier()
@@ -143,7 +142,6 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 	}
 
 	pattern := make([]STNode, 0)
-
 	head := symbol.Children[0]
 	if head.Type != STNodeTypeIdentifier {
 		return GolspUndefinedIdentifier()
@@ -157,9 +155,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 	}
 
 	symbol = head
-
 	_, exists := scope[symbol.Head]
-
 	if !exists {
 		scope[symbol.Head] = GolspObject{
 			IsFunction: true,
@@ -170,7 +166,6 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 
 	patternexists := false
 	patternindex := 0
-
 	for index, p := range scope[symbol.Head].Function.FunctionPatterns {
 		i := 0
 		for i, node := range p {
@@ -214,7 +209,6 @@ func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
 	}
 
 	argtype := arguments[0].Type
-
 	for _, a := range arguments {
 		if a.Type != argtype {
 			panic("cannot add arguments of different types")
@@ -223,7 +217,6 @@ func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
 
 	nsum := 0.0
 	strsum := ""
-
 	for _, v := range arguments {
 		text := v.Head
 		if argtype == STNodeTypeStringLiteral {
@@ -255,7 +248,6 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
 	text = text[1:len(text) - 1]
 
 	var args []interface{}
-
 	for _, v := range arguments[1:] {
 		for !isResolved(scope, v) {
 			v = eval(scope, v)
@@ -389,7 +381,6 @@ func eval(scope GolspScope, root STNode) STNode {
 
 	obj, _ := scope[exprhead.Head]
 	fn := obj.Function
-
 	builtin := len(fn.BuiltinPatterns) > 0
 	patternindex := matchPatterns(fn, arguments)
 
@@ -405,6 +396,7 @@ func eval(scope GolspScope, root STNode) STNode {
 		}
 	}
 
+	patternindex = matchPatterns(fn, arguments)
 	pattern := fn.FunctionPatterns[patternindex]
 	newscope := make(GolspScope)
 	for k, v := range scope {

@@ -1,0 +1,9 @@
+
+[= a "test"]
+
+[= [b "test"] "chuchu"]
+[= [b x] "xyz"]
+
+[printf "%v\n" [b "foo"]]
+[printf "%v\n" [b a]]
+[printf "%v\n" [b "test"]]
