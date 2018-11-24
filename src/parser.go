@@ -9,23 +9,6 @@ import (
 	"unicode"
 )
 
-type STNodeType int
-
-const (
-	STNodeTypeScope STNodeType = 0
-	STNodeTypeExpression STNodeType = 1
-	STNodeTypeStringLiteral STNodeType = 2
-	STNodeTypeNumberLiteral STNodeType = 3
-	STNodeTypeIdentifier STNodeType = 4
-	STNodeTypeComment = 5
-)
-
-type STNode struct {
-	Head string
-	Type STNodeType
-	Children []STNode
-}
-
 var LiteralDelimiters = map[string]string{
 	"\"": "\"",
 	"#": "\n",
