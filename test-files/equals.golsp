@@ -1,7 +1,8 @@
 
 [= a 1]
 [= b a]
-[printf "a: %v b: %v\n" a b]
+[= [c] a]
+[printf "a: %v b: %v c: %v\n" a b [c]]
 
 [= a 2]
-[printf "a: %v b: %v\n" a b]
+[printf "a: %v b: %v c: %v\n" a b [c]]
