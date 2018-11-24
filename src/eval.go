@@ -140,6 +140,12 @@ func eval(scope GolspScope, root STNode) STNode {
 	}
 
 	for i, symbol := range pattern {
+		if symbol.Type != STNodeTypeIdentifier {
+			continue
+		}
+
+		// TODO: resolve scope naming conflicts
+
 		newscope[symbol.Head] = GolspObject{
 			IsFunction: false,
 			Function: GolspEmptyFunction(),

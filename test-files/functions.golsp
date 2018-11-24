@@ -10,3 +10,4 @@
 [printf "%v\n" [[functions 0] 1]]
 [printf "%v\n" [[functions 1] 1]]
 [printf "%v\n" [twice [functions 0] 1]]
+[printf "%v\n" [twice [= [g n] [+ n 2]] 3]]

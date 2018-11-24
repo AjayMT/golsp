@@ -102,7 +102,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 			Value: value,
 		}
 
-		return value
+		return symbol
 	}
 
 	pattern := make([]STNode, 0)
@@ -146,7 +146,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 
 	if patternexists {
 		scope[symbol.Head].Function.FunctionBodies[patternindex] = value
-		return value
+		return symbol
 	}
 
 	newfn := GolspFunction{
@@ -162,7 +162,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 		Value: GolspUndefinedIdentifier(),
 	}
 
-	return value
+	return symbol
 }
 
 func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
