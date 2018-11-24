@@ -369,15 +369,11 @@ func eval(scope GolspScope, root STNode) STNode {
 
 	// root has to be expression or function identifier
 
-	if len(root.Children) == 0 && root.Type == STNodeTypeExpression {
+	if len(root.Children) == 0 {
 		return GolspUndefinedIdentifier()
 	}
 
-	exprhead := root
-	if root.Type == STNodeTypeExpression {
-		exprhead = root.Children[0]
-	}
-
+	exprhead := root.Children[0]
 	for !isResolved(scope, exprhead) {
 		exprhead = eval(scope, exprhead)
 	}
@@ -387,10 +383,8 @@ func eval(scope GolspScope, root STNode) STNode {
 	}
 
 	var arguments []STNode
-	if root.Type == STNodeTypeExpression {
-		for _, child := range root.Children[1:] {
-			arguments = append(arguments, child)
-		}
+	for _, child := range root.Children[1:] {
+		arguments = append(arguments, child)
 	}
 
 	obj, _ := scope[exprhead.Head]
