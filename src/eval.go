@@ -144,12 +144,15 @@ func eval(scope GolspScope, root STNode) STNode {
 			continue
 		}
 
-		// TODO: resolve scope naming conflicts
-
-		newscope[symbol.Head] = GolspObject{
-			IsFunction: false,
-			Function: GolspEmptyFunction(),
-			Value: arguments[i],
+		obj, exists := scope[arguments[i].Head]
+		if exists {
+			newscope[symbol.Head] = obj
+		} else {
+			newscope[symbol.Head] = GolspObject{
+				IsFunction: false,
+				Function: GolspEmptyFunction(),
+				Value: arguments[i],
+			}
 		}
 	}
 
