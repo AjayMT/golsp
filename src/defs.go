@@ -10,8 +10,9 @@ const (
 	STNodeTypeExpression STNodeType = 1
 	STNodeTypeStringLiteral STNodeType = 2
 	STNodeTypeNumberLiteral STNodeType = 3
-	STNodeTypeIdentifier STNodeType = 4
-	STNodeTypeComment = 5
+	STNodeTypeList STNodeType = 4
+	STNodeTypeIdentifier STNodeType = 5
+	STNodeTypeComment = 6
 )
 
 type STNode struct {
@@ -32,10 +33,19 @@ type GolspFunction struct {
 	BuiltinBodies []GolspBuiltinFunctionBody
 }
 
+type GolspObjectType int
+
+const (
+	GolspObjectTypeLiteral GolspObjectType = 0
+	GolspObjectTypeFunction = 1
+	GolspObjectTypeList GolspObjectType = 2
+)
+
 type GolspObject struct {
-	IsFunction bool
+	Type GolspObjectType
 	Function GolspFunction
 	Value STNode
+	Elements []GolspObject
 }
 
 const UNDEFINED = "undefined"

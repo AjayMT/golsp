@@ -1,0 +1,2 @@
+
+[expr {list a b [expr] {nested-list} "string" 1.0}]

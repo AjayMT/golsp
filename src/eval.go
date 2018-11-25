@@ -64,7 +64,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeStringLiteral ||
 		root.Type == STNodeTypeNumberLiteral {
 		return GolspObject{
-			IsFunction: false,
+			Type: GolspObjectTypeLiteral,
 			Function: GolspEmptyFunction(),
 			Value: root,
 		}
@@ -85,7 +85,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	exprscope := MakeScope(scope)
 	exprhead := Eval(exprscope, root.Children[0])
-	if !exprhead.IsFunction {
+	if exprhead.Type != GolspObjectTypeFunction {
 		return exprhead
 	}
 
@@ -109,7 +109,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		obj := Eval(exprscope, arg)
 		argobjects[i] = obj
 
-		if !obj.IsFunction {
+		if obj.Type != GolspObjectTypeFunction {
 			arguments[i] = obj.Value
 		}
 	}

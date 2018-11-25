@@ -11,13 +11,13 @@ import (
 
 var Builtins = GolspScope{
 	UNDEFINED: GolspObject{
-		IsFunction: false,
+		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: GolspUndefinedIdentifier(),
 	},
 
 	"=": GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
@@ -41,7 +41,7 @@ var Builtins = GolspScope{
 	},
 
 	"+": GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
@@ -52,7 +52,7 @@ var Builtins = GolspScope{
 	},
 
 	"-": GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
@@ -63,7 +63,7 @@ var Builtins = GolspScope{
 	},
 
 	"*": GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
@@ -74,7 +74,7 @@ var Builtins = GolspScope{
 	},
 
 	"/": GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
@@ -85,7 +85,7 @@ var Builtins = GolspScope{
 	},
 
 	"printf": GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
@@ -134,7 +134,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 		patternscope := MakeScope(scope)
 		for pattern[i].Type == STNodeTypeExpression {
 			obj := Eval(patternscope, pattern[i])
-			if !obj.IsFunction {
+			if obj.Type != GolspObjectTypeFunction {
 				pattern[i] = obj.Value
 			}
 		}
@@ -144,7 +144,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	_, exists := scope[symbol.Head]
 	if !exists {
 		scope[symbol.Head] = GolspObject{
-			IsFunction: true,
+			Type: GolspObjectTypeFunction,
 			Function: GolspEmptyFunction(),
 			Value: GolspUndefinedIdentifier(),
 		}
@@ -183,7 +183,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	scope[symbol.Head] = GolspObject{
-		IsFunction: true,
+		Type: GolspObjectTypeFunction,
 		Function: newfn,
 		Value: GolspUndefinedIdentifier(),
 	}
@@ -217,7 +217,7 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		IsFunction: false,
+		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
 	}
@@ -254,7 +254,7 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		IsFunction: false,
+		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
 	}
@@ -286,7 +286,7 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		IsFunction: false,
+		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: value,
 	}
@@ -324,7 +324,7 @@ func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		IsFunction: false,
+		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
 	}
@@ -339,7 +339,7 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 	for i, a := range arguments[1:] {
 		v := Eval(argscope, a)
 
-		if v.IsFunction {
+		if v.Type == GolspObjectTypeFunction {
 			args[i] = fmt.Sprintf("<function:%v>", a.Head)
 			continue
 		}
@@ -362,7 +362,7 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 	fmt.Printf(text, args...)
 
 	return GolspObject{
-		IsFunction: false,
+		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: STNode{
 			Head: fmt.Sprintf("\"%v\"", text),

@@ -25,11 +25,14 @@ var TokenDelimiters = map[string]string{
 	"": "",
 	"[": "]",
 	"]": "",
+	"{": "}",
+	"}": "",
 }
 
 var TokenDelimiterTypes = map[string]STNodeType{
 	"": STNodeTypeScope,
 	"[": STNodeTypeExpression,
+	"{": STNodeTypeList,
 }
 
 func MakeST(tokens []string) STNode {
