@@ -45,16 +45,41 @@ var Builtins = GolspScope{
 		Function: GolspFunction{
 			FunctionPatterns: make([][]STNode, 0),
 			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{
-				[]STNode{
-					STNode{
-						Head: "n",
-						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
-					},
-				},
-			},
+			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
 			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
+
+	"-": GolspObject{
+		IsFunction: true,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMinus},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
+
+	"*": GolspObject{
+		IsFunction: true,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMultiply},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
+
+	"/": GolspObject{
+		IsFunction: true,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinDivide},
 		},
 		Value: GolspUndefinedIdentifier(),
 	},
@@ -189,6 +214,98 @@ func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
 
 	return STNode{
 		Head: fmt.Sprintf("%v", sum),
+		Type: STNodeTypeNumberLiteral,
+		Children: make([]STNode, 0),
+	}
+}
+
+func GolspBuiltinMinus(scope GolspScope, arguments []STNode) STNode {
+	argscope := MakeScope(scope)
+	for i, _ := range arguments {
+		for !isResolved(argscope, arguments[i]) {
+			arguments[i] = eval(argscope, arguments[i])
+		}
+	}
+
+	for _, a := range arguments {
+		if a.Type != STNodeTypeNumberLiteral {
+			return GolspUndefinedIdentifier()
+		}
+	}
+
+	sum := 0.0
+	if len(arguments) > 0 {
+		n, _ := strconv.ParseFloat(arguments[0].Head, 64)
+		sum += n
+	}
+
+	for _, v := range arguments[1:] {
+		n, _ := strconv.ParseFloat(v.Head, 64)
+		sum -= n
+	}
+
+	return STNode{
+		Head: fmt.Sprintf("%v", sum),
+		Type: STNodeTypeNumberLiteral,
+		Children: make([]STNode, 0),
+	}
+}
+
+func GolspBuiltinMultiply(scope GolspScope, arguments []STNode) STNode {
+	argscope := MakeScope(scope)
+	for i, _ := range arguments {
+		for !isResolved(argscope, arguments[i]) {
+			arguments[i] = eval(argscope, arguments[i])
+		}
+	}
+
+	for _, a := range arguments {
+		if a.Type != STNodeTypeNumberLiteral {
+			return GolspUndefinedIdentifier()
+		}
+	}
+
+	product := 1.0
+	for _, v := range arguments {
+		n, _ := strconv.ParseFloat(v.Head, 64)
+		product *= n
+	}
+
+	return STNode{
+		Head: fmt.Sprintf("%v", product),
+		Type: STNodeTypeNumberLiteral,
+		Children: make([]STNode, 0),
+	}
+}
+
+func GolspBuiltinDivide(scope GolspScope, arguments []STNode) STNode {
+	argscope := MakeScope(scope)
+	for i, _ := range arguments {
+		for !isResolved(argscope, arguments[i]) {
+			arguments[i] = eval(argscope, arguments[i])
+		}
+	}
+
+	for _, a := range arguments {
+		if a.Type != STNodeTypeNumberLiteral {
+			return GolspUndefinedIdentifier()
+		}
+	}
+
+	numerator := 1.0
+	if len(arguments) > 0 {
+		n, _ := strconv.ParseFloat(arguments[0].Head, 64)
+		numerator *= n
+	}
+
+	denominator := 1.0
+	for _, v := range arguments[1:] {
+		n, _ := strconv.ParseFloat(v.Head, 64)
+		denominator *= n
+	}
+
+	return STNode{
+		Head: fmt.Sprintf("%v", numerator / denominator),
 		Type: STNodeTypeNumberLiteral,
 		Children: make([]STNode, 0),
 	}
