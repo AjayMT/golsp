@@ -40,20 +40,6 @@ func matchPatterns(fn GolspFunction, pattern []STNode) int {
 	return bestmatchindex
 }
 
-func isResolved(scope GolspScope, symbol STNode) bool {
-	if symbol.Type == STNodeTypeStringLiteral ||
-		symbol.Type == STNodeTypeNumberLiteral {
-		return true
-	}
-
-	if symbol.Type == STNodeTypeIdentifier &&
-		(scope[symbol.Head].IsFunction || symbol.Head == "undefined") {
-		return true
-	}
-
-	return false
-}
-
 func MakeScope(scope GolspScope) GolspScope {
 	newscope := make(GolspScope)
 	for k, v := range scope {
@@ -63,17 +49,13 @@ func MakeScope(scope GolspScope) GolspScope {
 	return newscope
 }
 
-func Eval(root STNode) STNode {
-	return eval(Builtins, root)
-}
-
-func eval(scope GolspScope, root STNode) STNode {
+func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
 		newscope := MakeScope(scope)
 
-		var result STNode
+		var result GolspObject
 		for _, child := range root.Children {
-			result = eval(newscope, child)
+			result = Eval(newscope, child)
 		}
 
 		return result
@@ -81,34 +63,29 @@ func eval(scope GolspScope, root STNode) STNode {
 
 	if root.Type == STNodeTypeStringLiteral ||
 		root.Type == STNodeTypeNumberLiteral {
-		return root
+		return GolspObject{
+			IsFunction: false,
+			Function: GolspEmptyFunction(),
+			Value: root,
+		}
 	}
 
 	if root.Type == STNodeTypeIdentifier {
 		obj, exists := scope[root.Head]
 		if !exists {
-			return GolspUndefinedIdentifier()
+			return scope[UNDEFINED]
 		}
 
-		if obj.IsFunction {
-			return root
-		}
-
-		return obj.Value
+		return obj
 	}
-
-	// root has to be expression or function identifier
 
 	if len(root.Children) == 0 {
-		return GolspUndefinedIdentifier()
+		return scope[UNDEFINED]
 	}
 
-	exprhead := root.Children[0]
-	for !isResolved(scope, exprhead) {
-		exprhead = eval(scope, exprhead)
-	}
-
-	if exprhead.Type != STNodeTypeIdentifier || exprhead.Head == "undefined" {
+	exprscope := MakeScope(scope)
+	exprhead := Eval(exprscope, root.Children[0])
+	if !exprhead.IsFunction {
 		return exprhead
 	}
 
@@ -117,8 +94,7 @@ func eval(scope GolspScope, root STNode) STNode {
 		arguments = append(arguments, child)
 	}
 
-	obj, _ := scope[exprhead.Head]
-	fn := obj.Function
+	fn := exprhead.Function
 	builtin := len(fn.BuiltinPatterns) > 0
 	patternindex := matchPatterns(fn, arguments)
 
@@ -126,24 +102,24 @@ func eval(scope GolspScope, root STNode) STNode {
 		return fn.BuiltinBodies[patternindex](scope, arguments)
 	}
 
-	// eval function
+	// Eval function
 
-	argscope := MakeScope(scope)
-	for i, _ := range arguments {
-		for !isResolved(argscope, arguments[i]) {
-			arguments[i] = eval(argscope, arguments[i])
+	var argobjects []GolspObject
+	for i, arg := range arguments {
+		obj := Eval(exprscope, arg)
+		argobjects = append(argobjects, obj)
+
+		if !obj.IsFunction {
+			arguments[i] = obj.Value
 		}
 	}
 
 	patternindex = matchPatterns(fn, arguments)
 	pattern := fn.FunctionPatterns[patternindex]
-	newscope := make(GolspScope)
-	for k, v := range scope {
-		newscope[k] = v
-	}
+	newscope := MakeScope(scope)
 
 	if len(arguments) < len(pattern) {
-		return GolspUndefinedIdentifier()
+		return scope[UNDEFINED]
 	}
 
 	for i, symbol := range pattern {
@@ -151,17 +127,8 @@ func eval(scope GolspScope, root STNode) STNode {
 			continue
 		}
 
-		if arguments[i].Type == STNodeTypeIdentifier {
-			obj := argscope[arguments[i].Head]
-			newscope[symbol.Head] = obj
-		} else {
-			newscope[symbol.Head] = GolspObject{
-				IsFunction: false,
-				Function: GolspEmptyFunction(),
-				Value: arguments[i],
-			}
-		}
+		newscope[symbol.Head] = argobjects[i]
 	}
 
-	return eval(newscope, fn.FunctionBodies[patternindex])
+	return Eval(newscope, fn.FunctionBodies[patternindex])
 }

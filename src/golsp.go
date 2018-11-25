@@ -4,7 +4,6 @@
 package main
 
 import (
-//	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -14,6 +13,5 @@ func main() {
 
 	tokens := Tokenize(string(input))
 	tree := MakeST(tokens)
-	// fmt.Printf("Syntax tree:\n%v\n", PrintST(tree))
-	Eval(tree)
+	Eval(Builtins, tree)
 }

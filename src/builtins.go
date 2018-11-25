@@ -10,7 +10,7 @@ import (
 )
 
 var Builtins = GolspScope{
-	"undefined": GolspObject{
+	UNDEFINED: GolspObject{
 		IsFunction: false,
 		Function: GolspEmptyFunction(),
 		Value: GolspUndefinedIdentifier(),
@@ -104,44 +104,39 @@ var Builtins = GolspScope{
 	},
 }
 
-func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
+func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	if len(arguments) < 2 {
-		return GolspUndefinedIdentifier()
+		return scope[UNDEFINED]
 	}
 
 	symbol := arguments[0]
 	value := arguments[1]
+
 	if symbol.Type != STNodeTypeIdentifier &&
 		symbol.Type != STNodeTypeExpression {
-		return GolspUndefinedIdentifier()
+		return Eval(scope, symbol)
 	}
 
 	if symbol.Type == STNodeTypeIdentifier {
 		valuescope := MakeScope(scope)
-		for !isResolved(valuescope, value) {
-			value = eval(valuescope, value)
-		}
-
-		scope[symbol.Head] = GolspObject{
-			IsFunction: false,
-			Function: GolspEmptyFunction(),
-			Value: value,
-		}
-
-		return symbol
+		scope[symbol.Head] = Eval(valuescope, value)
+		return scope[symbol.Head]
 	}
 
 	pattern := make([]STNode, 0)
 	head := symbol.Children[0]
 	if head.Type != STNodeTypeIdentifier {
-		return GolspUndefinedIdentifier()
+		return scope[UNDEFINED]
 	}
 
 	pattern = symbol.Children[1:]
 	for i, _ := range pattern {
 		patternscope := MakeScope(scope)
 		for pattern[i].Type == STNodeTypeExpression {
-			pattern[i] = eval(patternscope, pattern[i])
+			obj := Eval(patternscope, pattern[i])
+			if !obj.IsFunction {
+				pattern[i] = obj.Value
+			}
 		}
 	}
 
@@ -160,8 +155,12 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 	for index, p := range scope[symbol.Head].Function.FunctionPatterns {
 		i := 0
 		for i, node := range p {
-			if i >= len(pattern) { continue }
-			if node.Type == pattern[i].Type { i++ }
+			if i >= len(pattern) { break }
+			if node.Type != pattern[i].Type { continue }
+			if node.Type != STNodeTypeIdentifier &&
+				node.Head != pattern[i].Head { continue }
+
+			i++
 		}
 
 		if i == len(p) && i == len(pattern) {
@@ -173,7 +172,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 
 	if patternexists {
 		scope[symbol.Head].Function.FunctionBodies[patternindex] = value
-		return symbol
+		return scope[symbol.Head]
 	}
 
 	newfn := GolspFunction{
@@ -189,149 +188,170 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 		Value: GolspUndefinedIdentifier(),
 	}
 
-	return symbol
+	return scope[symbol.Head]
 }
 
-func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
+func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
+	var arguments []GolspObject
 	argscope := MakeScope(scope)
-	for i, _ := range arguments {
-		for !isResolved(argscope, arguments[i]) {
-			arguments[i] = eval(argscope, arguments[i])
-		}
+	for _, a := range args {
+		arguments = append(arguments, Eval(argscope, a))
 	}
 
 	for _, a := range arguments {
-		if a.Type != STNodeTypeNumberLiteral {
-			return GolspUndefinedIdentifier()
+		if a.Value.Type != STNodeTypeNumberLiteral {
+			return scope[UNDEFINED]
 		}
 	}
 
 	sum := 0.0
 	for _, v := range arguments {
-		n, _ := strconv.ParseFloat(v.Head, 64)
+		n, _ := strconv.ParseFloat(v.Value.Head, 64)
 		sum += n
 	}
 
-	return STNode{
+	val := STNode{
 		Head: fmt.Sprintf("%v", sum),
 		Type: STNodeTypeNumberLiteral,
 		Children: make([]STNode, 0),
 	}
+
+	return GolspObject{
+		IsFunction: false,
+		Function: GolspEmptyFunction(),
+		Value: val,
+	}
 }
 
-func GolspBuiltinMinus(scope GolspScope, arguments []STNode) STNode {
+func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
+	var arguments []GolspObject
 	argscope := MakeScope(scope)
-	for i, _ := range arguments {
-		for !isResolved(argscope, arguments[i]) {
-			arguments[i] = eval(argscope, arguments[i])
-		}
+	for _, a := range args {
+		arguments = append(arguments, Eval(argscope, a))
 	}
 
 	for _, a := range arguments {
-		if a.Type != STNodeTypeNumberLiteral {
-			return GolspUndefinedIdentifier()
+		if a.Value.Type != STNodeTypeNumberLiteral {
+			return scope[UNDEFINED]
 		}
 	}
 
 	sum := 0.0
 	if len(arguments) > 0 {
-		n, _ := strconv.ParseFloat(arguments[0].Head, 64)
+		n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
 		sum += n
 	}
 
 	for _, v := range arguments[1:] {
-		n, _ := strconv.ParseFloat(v.Head, 64)
+		n, _ := strconv.ParseFloat(v.Value.Head, 64)
 		sum -= n
 	}
 
-	return STNode{
+	val := STNode{
 		Head: fmt.Sprintf("%v", sum),
 		Type: STNodeTypeNumberLiteral,
 		Children: make([]STNode, 0),
 	}
+
+	return GolspObject{
+		IsFunction: false,
+		Function: GolspEmptyFunction(),
+		Value: val,
+	}
 }
 
-func GolspBuiltinMultiply(scope GolspScope, arguments []STNode) STNode {
+func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
+	var arguments []GolspObject
 	argscope := MakeScope(scope)
-	for i, _ := range arguments {
-		for !isResolved(argscope, arguments[i]) {
-			arguments[i] = eval(argscope, arguments[i])
-		}
+	for _, a := range args {
+		arguments = append(arguments, Eval(argscope, a))
 	}
 
 	for _, a := range arguments {
-		if a.Type != STNodeTypeNumberLiteral {
-			return GolspUndefinedIdentifier()
+		if a.Value.Type != STNodeTypeNumberLiteral {
+			return scope[UNDEFINED]
 		}
 	}
 
 	product := 1.0
 	for _, v := range arguments {
-		n, _ := strconv.ParseFloat(v.Head, 64)
+		n, _ := strconv.ParseFloat(v.Value.Head, 64)
 		product *= n
 	}
 
-	return STNode{
+	value := STNode{
 		Head: fmt.Sprintf("%v", product),
 		Type: STNodeTypeNumberLiteral,
 		Children: make([]STNode, 0),
 	}
+
+	return GolspObject{
+		IsFunction: false,
+		Function: GolspEmptyFunction(),
+		Value: value,
+	}
 }
 
-func GolspBuiltinDivide(scope GolspScope, arguments []STNode) STNode {
+func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
+	var arguments []GolspObject
 	argscope := MakeScope(scope)
-	for i, _ := range arguments {
-		for !isResolved(argscope, arguments[i]) {
-			arguments[i] = eval(argscope, arguments[i])
-		}
+	for _, a := range args {
+		arguments = append(arguments, Eval(argscope, a))
 	}
 
 	for _, a := range arguments {
-		if a.Type != STNodeTypeNumberLiteral {
-			return GolspUndefinedIdentifier()
+		if a.Value.Type != STNodeTypeNumberLiteral {
+			return scope[UNDEFINED]
 		}
 	}
 
 	numerator := 1.0
 	if len(arguments) > 0 {
-		n, _ := strconv.ParseFloat(arguments[0].Head, 64)
+		n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
 		numerator *= n
 	}
 
 	denominator := 1.0
 	for _, v := range arguments[1:] {
-		n, _ := strconv.ParseFloat(v.Head, 64)
+		n, _ := strconv.ParseFloat(v.Value.Head, 64)
 		denominator *= n
 	}
 
-	return STNode{
+	val := STNode{
 		Head: fmt.Sprintf("%v", numerator / denominator),
 		Type: STNodeTypeNumberLiteral,
 		Children: make([]STNode, 0),
 	}
+
+	return GolspObject{
+		IsFunction: false,
+		Function: GolspEmptyFunction(),
+		Value: val,
+	}
 }
 
-func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
+func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 	text := arguments[0].Head
 	text = text[1:len(text) - 1]
 
 	argscope := MakeScope(scope)
 	var args []interface{}
-	for _, v := range arguments[1:] {
-		for !isResolved(argscope, v) {
-			v = eval(argscope, v)
+	for _, a := range arguments[1:] {
+		v := Eval(argscope, a)
+
+		if v.IsFunction {
+			args = append(args, fmt.Sprintf("<function:%v>", a.Head))
+			continue
 		}
 
-		if v.Type == STNodeTypeNumberLiteral {
-			n, _ := strconv.ParseFloat(v.Head, 64)
+		if v.Value.Type == STNodeTypeNumberLiteral {
+			n, _ := strconv.ParseFloat(v.Value.Head, 64)
 			args = append(args, n)
-		} else if v.Type == STNodeTypeStringLiteral {
-			str := v.Head[1:len(v.Head) - 1]
+		} else if v.Value.Type == STNodeTypeStringLiteral {
+			str := v.Value.Head[1:len(v.Value.Head) - 1]
 			args = append(args, str)
-		} else if v.Head == "undefined" {
-			args = append(args, "<undefined>")
 		} else {
-			args = append(args, fmt.Sprintf("<function:%v>", v.Head))
+			args = append(args, "<undefined>")
 		}
 	}
 
@@ -341,7 +361,15 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
 
 	fmt.Printf(text, args...)
 
-	return arguments[0]
+	return GolspObject{
+		IsFunction: false,
+		Function: GolspEmptyFunction(),
+		Value: STNode{
+			Head: fmt.Sprintf("\"%v\"", text),
+			Type: STNodeTypeStringLiteral,
+			Children: make([]STNode, 0),
+		},
+	}
 }
 
 func GolspUndefinedIdentifier() STNode {

@@ -22,7 +22,7 @@ type STNode struct {
 
 type GolspScope map[string]GolspObject
 
-type GolspBuiltinFunctionBody func(GolspScope, []STNode) STNode
+type GolspBuiltinFunctionBody func(GolspScope, []STNode) GolspObject
 
 type GolspFunction struct {
 	FunctionPatterns [][]STNode
@@ -37,3 +37,5 @@ type GolspObject struct {
 	Function GolspFunction
 	Value STNode
 }
+
+const UNDEFINED string = "undefined"
