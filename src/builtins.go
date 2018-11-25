@@ -92,8 +92,9 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 	}
 
 	if symbol.Type == STNodeTypeIdentifier {
-		for !isResolved(scope, value) {
-			value = eval(scope, value)
+		valuescope := MakeScope(scope)
+		for !isResolved(valuescope, value) {
+			value = eval(valuescope, value)
 		}
 
 		scope[symbol.Head] = GolspObject{
@@ -113,8 +114,9 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 
 	pattern = symbol.Children[1:]
 	for i, _ := range pattern {
+		patternscope := MakeScope(scope)
 		for pattern[i].Type == STNodeTypeExpression {
-			pattern[i] = eval(scope, pattern[i])
+			pattern[i] = eval(patternscope, pattern[i])
 		}
 	}
 
@@ -166,42 +168,27 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) STNode {
 }
 
 func GolspBuiltinPlus(scope GolspScope, arguments []STNode) STNode {
+	argscope := MakeScope(scope)
 	for i, _ := range arguments {
-		for !isResolved(scope, arguments[i]) {
-			arguments[i] = eval(scope, arguments[i])
+		for !isResolved(argscope, arguments[i]) {
+			arguments[i] = eval(argscope, arguments[i])
 		}
 	}
 
-	argtype := arguments[0].Type
 	for _, a := range arguments {
-		if a.Type != argtype {
-			panic("cannot add arguments of different types")
+		if a.Type != STNodeTypeNumberLiteral {
+			return GolspUndefinedIdentifier()
 		}
 	}
 
-	nsum := 0.0
-	strsum := ""
+	sum := 0.0
 	for _, v := range arguments {
-		text := v.Head
-		if argtype == STNodeTypeStringLiteral {
-			text = text[1:len(text) - 1]
-		}
-
-		n, _ := strconv.ParseFloat(text, 64)
-		nsum += n
-		strsum += text
-	}
-
-	if argtype == STNodeTypeStringLiteral {
-		return STNode{
-			Head: "\"" + strsum + "\"",
-			Type: STNodeTypeStringLiteral,
-			Children: make([]STNode, 0),
-		}
+		n, _ := strconv.ParseFloat(v.Head, 64)
+		sum += n
 	}
 
 	return STNode{
-		Head: fmt.Sprintf("%v", nsum),
+		Head: fmt.Sprintf("%v", sum),
 		Type: STNodeTypeNumberLiteral,
 		Children: make([]STNode, 0),
 	}
@@ -211,10 +198,11 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) STNode {
 	text := arguments[0].Head
 	text = text[1:len(text) - 1]
 
+	argscope := MakeScope(scope)
 	var args []interface{}
 	for _, v := range arguments[1:] {
-		for !isResolved(scope, v) {
-			v = eval(scope, v)
+		for !isResolved(argscope, v) {
+			v = eval(argscope, v)
 		}
 
 		if v.Type == STNodeTypeNumberLiteral {

@@ -54,7 +54,7 @@ func isResolved(scope GolspScope, symbol STNode) bool {
 	return false
 }
 
-func makeScope(scope GolspScope) GolspScope {
+func MakeScope(scope GolspScope) GolspScope {
 	newscope := make(GolspScope)
 	for k, v := range scope {
 		newscope[k] = v
@@ -69,7 +69,7 @@ func Eval(root STNode) STNode {
 
 func eval(scope GolspScope, root STNode) STNode {
 	if root.Type == STNodeTypeScope {
-		newscope := makeScope(scope)
+		newscope := MakeScope(scope)
 
 		var result STNode
 		for _, child := range root.Children {
@@ -128,7 +128,7 @@ func eval(scope GolspScope, root STNode) STNode {
 
 	// eval function
 
-	argscope := makeScope(scope)
+	argscope := MakeScope(scope)
 	for i, _ := range arguments {
 		for !isResolved(argscope, arguments[i]) {
 			arguments[i] = eval(argscope, arguments[i])
