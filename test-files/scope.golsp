@@ -1,9 +1,16 @@
 
-[= [a x] [= [b] [+ x 1]]]
-[= [c n] [+ 1 1]]
+[= n 2]
+
+[=
+ [a x]
+ [=
+  [b]
+  [+ x 1]]]
+
+[= [c] [+ n 1]]
 
 [printf "%v\n" a]
 [printf "%v\n" c]
-[printf "%v\n" [c 0]]
-[printf "%v\n" [a 1]]
+[printf "%v\n" [c]]
+[printf "%v %v %v\n" [a 2] [[a 1]] [[a 3]]]
 [printf "%v\n" b]

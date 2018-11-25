@@ -374,7 +374,7 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 
 func GolspUndefinedIdentifier() STNode {
 	return STNode{
-		Head: "undefined",
+		Head: UNDEFINED,
 		Type: STNodeTypeIdentifier,
 		Children: make([]STNode, 0),
 	}
