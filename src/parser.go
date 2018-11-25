@@ -14,7 +14,7 @@ var LiteralDelimiters = map[string]string{
 	"#": "\n",
 }
 
-var LiteralEscape = '\\'
+const LiteralEscape = '\\'
 
 var LiteralDelimiterTypes = map[string]STNodeType{
 	"\"": STNodeTypeStringLiteral,
@@ -40,7 +40,6 @@ func MakeST(tokens []string) STNode {
 
 func pruneComments(root STNode) STNode {
 	var newchildren []STNode
-
 	for _, child := range root.Children {
 		if child.Type == STNodeTypeComment {
 			continue

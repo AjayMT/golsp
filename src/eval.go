@@ -89,9 +89,9 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return exprhead
 	}
 
-	var arguments []STNode
-	for _, child := range root.Children[1:] {
-		arguments = append(arguments, child)
+	arguments := make([]STNode, len(root.Children) - 1)
+	for i, child := range root.Children[1:] {
+		arguments[i] = child
 	}
 
 	fn := exprhead.Function
@@ -104,10 +104,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// Eval function
 
-	var argobjects []GolspObject
+	argobjects := make([]GolspObject, len(arguments))
 	for i, arg := range arguments {
 		obj := Eval(exprscope, arg)
-		argobjects = append(argobjects, obj)
+		argobjects[i] = obj
 
 		if !obj.IsFunction {
 			arguments[i] = obj.Value

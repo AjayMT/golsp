@@ -192,10 +192,10 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 }
 
 func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
-	var arguments []GolspObject
+	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(scope)
-	for _, a := range args {
-		arguments = append(arguments, Eval(argscope, a))
+	for i, a := range args {
+		arguments[i] = Eval(argscope, a)
 	}
 
 	for _, a := range arguments {
@@ -224,10 +224,10 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 }
 
 func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
-	var arguments []GolspObject
+	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(scope)
-	for _, a := range args {
-		arguments = append(arguments, Eval(argscope, a))
+	for i, a := range args {
+		arguments[i] = Eval(argscope, a)
 	}
 
 	for _, a := range arguments {
@@ -261,10 +261,10 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 }
 
 func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
-	var arguments []GolspObject
+	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(scope)
-	for _, a := range args {
-		arguments = append(arguments, Eval(argscope, a))
+	for i, a := range args {
+		arguments[i] = Eval(argscope, a)
 	}
 
 	for _, a := range arguments {
@@ -293,10 +293,10 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 }
 
 func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
-	var arguments []GolspObject
+	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(scope)
-	for _, a := range args {
-		arguments = append(arguments, Eval(argscope, a))
+	for i, a := range args {
+		arguments[i] = Eval(argscope, a)
 	}
 
 	for _, a := range arguments {
@@ -335,23 +335,23 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 	text = text[1:len(text) - 1]
 
 	argscope := MakeScope(scope)
-	var args []interface{}
-	for _, a := range arguments[1:] {
+	args := make([]interface{}, len(arguments) - 1)
+	for i, a := range arguments[1:] {
 		v := Eval(argscope, a)
 
 		if v.IsFunction {
-			args = append(args, fmt.Sprintf("<function:%v>", a.Head))
+			args[i] = fmt.Sprintf("<function:%v>", a.Head)
 			continue
 		}
 
 		if v.Value.Type == STNodeTypeNumberLiteral {
 			n, _ := strconv.ParseFloat(v.Value.Head, 64)
-			args = append(args, n)
+			args[i] = n
 		} else if v.Value.Type == STNodeTypeStringLiteral {
 			str := v.Value.Head[1:len(v.Value.Head) - 1]
-			args = append(args, str)
+			args[i] = str
 		} else {
-			args = append(args, "<undefined>")
+			args[i] = "<undefined>"
 		}
 	}
 

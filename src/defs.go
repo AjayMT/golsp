@@ -38,4 +38,4 @@ type GolspObject struct {
 	Value STNode
 }
 
-const UNDEFINED string = "undefined"
+const UNDEFINED = "undefined"
