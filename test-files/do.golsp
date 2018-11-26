@@ -1,0 +1,14 @@
+
+[= [a x] [/ x 2]]
+
+[= [c]
+ [do
+  [= b [a 7]]
+  [printf "b: %v\n" b]
+  [= [a 1] 2]
+  [printf "%v\n" [a 3]]
+  [printf "%v\n" [a 1]]]]
+
+[c]
+# [printf "%v\n" [a 8]]
+# [printf "%v\n" b]

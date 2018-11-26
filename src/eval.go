@@ -73,9 +73,44 @@ func MakeScope(parent *GolspScope) GolspScope {
 	return newscope
 }
 
+func copyObjectScope(object GolspObject) GolspObject {
+	newobject := GolspObject{
+		Type: object.Type,
+		Value: object.Value,
+		Function: object.Function,
+		Elements: object.Elements,
+		Scope: GolspScope{
+			Parent: object.Scope.Parent,
+			Identifiers: make(map[string]GolspObject),
+		},
+	}
+
+	for k, o := range object.Scope.Identifiers {
+		newobject.Scope.Identifiers[k] = copyObjectScope(o)
+	}
+
+	return newobject
+}
+
+func isolateScope(scope GolspScope) map[string]GolspObject {
+	identifiers := make(map[string]GolspObject)
+
+	if scope.Parent != nil {
+		identifiers = isolateScope(*(scope.Parent))
+	}
+
+	for k, o := range scope.Identifiers {
+		identifiers[k] = copyObjectScope(o)
+	}
+
+	return identifiers
+}
+
 func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
-		newscope := MakeScope(&scope)
+		newscope := GolspScope{
+			Identifiers: isolateScope(scope),
+		}
 
 		var result GolspObject
 		for _, child := range root.Children {

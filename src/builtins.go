@@ -95,6 +95,14 @@ func InitializeBuiltins() {
 			},
 		},
 
+		"do": GolspObject{
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinDo},
+			},
+		},
+
 		"sprintf": GolspObject{
 			Type: GolspObjectTypeFunction,
 			Function: GolspFunction{
@@ -166,8 +174,9 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	symbol = head
 	_, exists := scope.Identifiers[symbol.Head]
 	if !exists {
+		newscope := MakeScope(&scope)
 		scope.Identifiers[symbol.Head] = GolspObject{
-			Scope: MakeScope(&scope),
+			Scope: newscope,
 			Type: GolspObjectTypeFunction,
 		}
 	}
@@ -405,6 +414,15 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 	fmt.Printf(obj.Value.Head[1:len(obj.Value.Head) - 1])
 
 	return obj
+}
+
+func GolspBuiltinDo(scope GolspScope, arguments []STNode) GolspObject {
+	scopenode := STNode{
+		Type: STNodeTypeScope,
+		Children: arguments,
+	}
+
+	return Eval(scope, scopenode)
 }
 
 func GolspBuiltinIf(scope GolspScope, arguments []STNode) GolspObject {
