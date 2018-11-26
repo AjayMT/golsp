@@ -64,9 +64,9 @@ func LookupIdentifier(scope GolspScope, identifier string) GolspObject {
 	return Builtins.Identifiers[UNDEFINED]
 }
 
-func MakeScope(scope GolspScope) GolspScope {
+func MakeScope(parent *GolspScope) GolspScope {
 	newscope := GolspScope{
-		Parent: &scope,
+		Parent: parent,
 		Identifiers: make(map[string]GolspObject),
 	}
 
@@ -75,7 +75,7 @@ func MakeScope(scope GolspScope) GolspScope {
 
 func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
-		newscope := MakeScope(scope)
+		newscope := MakeScope(&scope)
 
 		var result GolspObject
 		for _, child := range root.Children {
@@ -117,8 +117,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
-	exprscope := MakeScope(scope)
-	exprhead := Eval(exprscope, root.Children[0])
+	exprhead := Eval(scope, root.Children[0])
 
 	if exprhead.Type == GolspObjectTypeLiteral {
 		return exprhead
@@ -129,7 +128,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			return exprhead
 		}
 
-		indexobj := Eval(exprscope, root.Children[1])
+		indexobj := Eval(scope, root.Children[1])
 		if indexobj.Value.Type != STNodeTypeNumberLiteral {
 			return Builtins.Identifiers[UNDEFINED]
 		}
@@ -158,9 +157,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// Eval function
 
+	argscope := MakeScope(&scope)
 	argobjects := make([]GolspObject, len(arguments))
 	for i, arg := range arguments {
-		obj := Eval(exprscope, arg)
+		obj := Eval(argscope, arg)
 		argobjects[i] = obj
 
 		if obj.Type != GolspObjectTypeFunction {
@@ -170,7 +170,6 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	patternindex = matchPatterns(fn, arguments)
 	pattern := fn.FunctionPatterns[patternindex]
-	newscope := MakeScope(scope)
 
 	if len(arguments) < len(pattern) {
 		return Builtins.Identifiers[UNDEFINED]
@@ -181,8 +180,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			continue
 		}
 
-		newscope.Identifiers[symbol.Head] = argobjects[i]
+		exprhead.Scope.Identifiers[symbol.Head] = argobjects[i]
 	}
 
-	return Eval(newscope, fn.FunctionBodies[patternindex])
+	return Eval(exprhead.Scope, fn.FunctionBodies[patternindex])
 }

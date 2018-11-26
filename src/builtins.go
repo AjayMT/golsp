@@ -152,7 +152,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	if symbol.Type == STNodeTypeIdentifier {
-		valuescope := MakeScope(scope)
+		valuescope := MakeScope(&scope)
 		scope.Identifiers[symbol.Head] = Eval(valuescope, value)
 		return scope.Identifiers[symbol.Head]
 	}
@@ -165,7 +165,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 
 	pattern = symbol.Children[1:]
 	for i, _ := range pattern {
-		patternscope := MakeScope(scope)
+		patternscope := MakeScope(&scope)
 		for pattern[i].Type == STNodeTypeExpression {
 			obj := Eval(patternscope, pattern[i])
 			if obj.Type == GolspObjectTypeLiteral {
@@ -178,7 +178,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	_, exists := scope.Identifiers[symbol.Head]
 	if !exists {
 		scope.Identifiers[symbol.Head] = GolspObject{
-			Scope: MakeScope(scope),
+			Scope: MakeScope(&scope),
 			Type: GolspObjectTypeFunction,
 			Function: GolspEmptyFunction(),
 			Value: GolspUndefinedIdentifier(),
@@ -218,7 +218,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	scope.Identifiers[symbol.Head] = GolspObject{
-		Scope: MakeScope(scope),
+		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeFunction,
 		Function: newfn,
 		Value: GolspUndefinedIdentifier(),
@@ -229,7 +229,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 
 func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 	arguments := make([]GolspObject, len(args))
-	argscope := MakeScope(scope)
+	argscope := MakeScope(&scope)
 	for i, a := range args {
 		arguments[i] = Eval(argscope, a)
 	}
@@ -253,7 +253,7 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(scope),
+		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
@@ -262,7 +262,7 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 
 func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 	arguments := make([]GolspObject, len(args))
-	argscope := MakeScope(scope)
+	argscope := MakeScope(&scope)
 	for i, a := range args {
 		arguments[i] = Eval(argscope, a)
 	}
@@ -291,7 +291,7 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(scope),
+		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
@@ -300,7 +300,7 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 
 func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 	arguments := make([]GolspObject, len(args))
-	argscope := MakeScope(scope)
+	argscope := MakeScope(&scope)
 	for i, a := range args {
 		arguments[i] = Eval(argscope, a)
 	}
@@ -324,7 +324,7 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(scope),
+		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: value,
@@ -333,7 +333,7 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 
 func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
 	arguments := make([]GolspObject, len(args))
-	argscope := MakeScope(scope)
+	argscope := MakeScope(&scope)
 	for i, a := range args {
 		arguments[i] = Eval(argscope, a)
 	}
@@ -363,7 +363,7 @@ func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(scope),
+		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
@@ -406,14 +406,14 @@ func GolspBuiltinSprintf(scope GolspScope, arguments []STNode) GolspObject {
 	text := arguments[0].Head
 	text = text[1:len(text) - 1]
 
-	argscope := MakeScope(scope)
+	argscope := MakeScope(&scope)
 	objects := make([]GolspObject, len(arguments) - 1)
 	for i, a := range arguments[1:] {
 		objects[i] = Eval(argscope, a)
 	}
 
 	return GolspObject{
-		Scope: MakeScope(scope),
+		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: STNode{
