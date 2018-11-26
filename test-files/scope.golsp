@@ -9,8 +9,11 @@
 
 [= [c] [+ n 1]]
 
+[[= [f x] [+ x 3]] 7]
+
 [printf "%v\n" a]
 [printf "%v\n" c]
 [printf "%v\n" [c]]
 [printf "%v %v %v\n" [a 2] [[a 1]] [[a 3]]]
 [printf "%v\n" b]
+[printf "%v\n" f]

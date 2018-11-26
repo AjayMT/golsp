@@ -117,7 +117,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
-	exprhead := Eval(scope, root.Children[0])
+	exprhead := Eval(MakeScope(&scope), root.Children[0])
 
 	if exprhead.Type == GolspObjectTypeLiteral {
 		return exprhead
