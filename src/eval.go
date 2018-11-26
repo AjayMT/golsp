@@ -53,10 +53,21 @@ func matchPatterns(fn GolspFunction, pattern []STNode) int {
 	return bestmatchindex
 }
 
+func LookupIdentifier(scope GolspScope, identifier string) GolspObject {
+	obj, exists := scope.Identifiers[identifier]
+	if exists { return obj }
+
+	if scope.Parent != nil {
+		return LookupIdentifier(*(scope.Parent), identifier)
+	}
+
+	return Builtins.Identifiers[UNDEFINED]
+}
+
 func MakeScope(scope GolspScope) GolspScope {
-	newscope := make(GolspScope)
-	for k, v := range scope {
-		newscope[k] = v
+	newscope := GolspScope{
+		Parent: &scope,
+		Identifiers: make(map[string]GolspObject),
 	}
 
 	return newscope
@@ -98,16 +109,12 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	if root.Type == STNodeTypeIdentifier {
-		obj, exists := scope[root.Head]
-		if !exists {
-			return scope[UNDEFINED]
-		}
-
+		obj := LookupIdentifier(scope, root.Head)
 		return obj
 	}
 
 	if len(root.Children) == 0 {
-		return scope[UNDEFINED]
+		return Builtins.Identifiers[UNDEFINED]
 	}
 
 	exprscope := MakeScope(scope)
@@ -124,13 +131,13 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 		indexobj := Eval(exprscope, root.Children[1])
 		if indexobj.Value.Type != STNodeTypeNumberLiteral {
-			return scope[UNDEFINED]
+			return Builtins.Identifiers[UNDEFINED]
 		}
 
 		index, _ := strconv.Atoi(indexobj.Value.Head)
 		if index < 0 { index += len(exprhead.Elements) }
 		if index < 0 || index >= len(exprhead.Elements) {
-			return scope[UNDEFINED]
+			return Builtins.Identifiers[UNDEFINED]
 		}
 
 		return exprhead.Elements[index]
@@ -166,7 +173,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	newscope := MakeScope(scope)
 
 	if len(arguments) < len(pattern) {
-		return scope[UNDEFINED]
+		return Builtins.Identifiers[UNDEFINED]
 	}
 
 	for i, symbol := range pattern {
@@ -174,7 +181,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			continue
 		}
 
-		newscope[symbol.Head] = argobjects[i]
+		newscope.Identifiers[symbol.Head] = argobjects[i]
 	}
 
 	return Eval(newscope, fn.FunctionBodies[patternindex])

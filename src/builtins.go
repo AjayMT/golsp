@@ -10,122 +10,137 @@ import (
 )
 
 var Builtins = GolspScope{
-	UNDEFINED: GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Function: GolspEmptyFunction(),
-		Value: GolspUndefinedIdentifier(),
-	},
+	Parent: nil,
+	Identifiers: nil,
+}
 
-	"=": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{
-				[]STNode{
-					STNode{
-						Head: "a",
-						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
-					},
-					STNode{
-						Head: "b",
-						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
-					},
-				},
-			},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinEquals},
+func InitializeBuiltins() {
+	Builtins.Identifiers = map[string]GolspObject{
+		UNDEFINED: GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeLiteral,
+			Function: GolspEmptyFunction(),
+			Value: GolspUndefinedIdentifier(),
 		},
-		Value: GolspUndefinedIdentifier(),
-	},
 
-	"+": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
-		},
-		Value: GolspUndefinedIdentifier(),
-	},
-
-	"-": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMinus},
-		},
-		Value: GolspUndefinedIdentifier(),
-	},
-
-	"*": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMultiply},
-		},
-		Value: GolspUndefinedIdentifier(),
-	},
-
-	"/": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{make([]STNode, 0)},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinDivide},
-		},
-		Value: GolspUndefinedIdentifier(),
-	},
-
-	"sprintf": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{
-				[]STNode{
-					STNode{
-						Head: "s",
-						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
+		"=": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{
+					[]STNode{
+						STNode{
+							Head: "a",
+							Type: STNodeTypeIdentifier,
+							Children: make([]STNode, 0),
+						},
+						STNode{
+							Head: "b",
+							Type: STNodeTypeIdentifier,
+							Children: make([]STNode, 0),
+						},
 					},
 				},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinEquals},
 			},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinSprintf},
+			Value: GolspUndefinedIdentifier(),
 		},
-		Value: GolspUndefinedIdentifier(),
-	},
 
-	"printf": GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
-			BuiltinPatterns: [][]STNode{
-				[]STNode{
-					STNode{
-						Head: "s",
-						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
+		"+": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
+			},
+			Value: GolspUndefinedIdentifier(),
+		},
+
+		"-": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMinus},
+			},
+			Value: GolspUndefinedIdentifier(),
+		},
+
+		"*": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMultiply},
+			},
+			Value: GolspUndefinedIdentifier(),
+		},
+
+		"/": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinDivide},
+			},
+			Value: GolspUndefinedIdentifier(),
+		},
+
+		"sprintf": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{
+					[]STNode{
+						STNode{
+							Head: "s",
+							Type: STNodeTypeIdentifier,
+							Children: make([]STNode, 0),
+						},
 					},
 				},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinSprintf},
 			},
-			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPrintf},
+			Value: GolspUndefinedIdentifier(),
 		},
-		Value: GolspUndefinedIdentifier(),
-	},
+
+		"printf": GolspObject{
+			Scope: GolspEmptyScope(),
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				FunctionPatterns: make([][]STNode, 0),
+				FunctionBodies: make([]STNode, 0),
+				BuiltinPatterns: [][]STNode{
+					[]STNode{
+						STNode{
+							Head: "s",
+							Type: STNodeTypeIdentifier,
+							Children: make([]STNode, 0),
+						},
+					},
+				},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPrintf},
+			},
+			Value: GolspUndefinedIdentifier(),
+		},
+	}
 }
 
 func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	if len(arguments) < 2 {
-		return scope[UNDEFINED]
+		return Builtins.Identifiers[UNDEFINED]
 	}
 
 	symbol := arguments[0]
@@ -138,14 +153,14 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 
 	if symbol.Type == STNodeTypeIdentifier {
 		valuescope := MakeScope(scope)
-		scope[symbol.Head] = Eval(valuescope, value)
-		return scope[symbol.Head]
+		scope.Identifiers[symbol.Head] = Eval(valuescope, value)
+		return scope.Identifiers[symbol.Head]
 	}
 
 	pattern := make([]STNode, 0)
 	head := symbol.Children[0]
 	if head.Type != STNodeTypeIdentifier {
-		return scope[UNDEFINED]
+		return Builtins.Identifiers[UNDEFINED]
 	}
 
 	pattern = symbol.Children[1:]
@@ -160,9 +175,10 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	symbol = head
-	_, exists := scope[symbol.Head]
+	_, exists := scope.Identifiers[symbol.Head]
 	if !exists {
-		scope[symbol.Head] = GolspObject{
+		scope.Identifiers[symbol.Head] = GolspObject{
+			Scope: MakeScope(scope),
 			Type: GolspObjectTypeFunction,
 			Function: GolspEmptyFunction(),
 			Value: GolspUndefinedIdentifier(),
@@ -171,7 +187,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 
 	patternexists := false
 	patternindex := 0
-	for index, p := range scope[symbol.Head].Function.FunctionPatterns {
+	for index, p := range scope.Identifiers[symbol.Head].Function.FunctionPatterns {
 		i := 0
 		for i, node := range p {
 			if i >= len(pattern) { break }
@@ -190,24 +206,25 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	if patternexists {
-		scope[symbol.Head].Function.FunctionBodies[patternindex] = value
-		return scope[symbol.Head]
+		scope.Identifiers[symbol.Head].Function.FunctionBodies[patternindex] = value
+		return scope.Identifiers[symbol.Head]
 	}
 
 	newfn := GolspFunction{
-		FunctionPatterns: append(scope[symbol.Head].Function.FunctionPatterns, pattern),
-		FunctionBodies: append(scope[symbol.Head].Function.FunctionBodies, value),
-		BuiltinPatterns: scope[symbol.Head].Function.BuiltinPatterns,
-		BuiltinBodies: scope[symbol.Head].Function.BuiltinBodies,
+		FunctionPatterns: append(scope.Identifiers[symbol.Head].Function.FunctionPatterns, pattern),
+		FunctionBodies: append(scope.Identifiers[symbol.Head].Function.FunctionBodies, value),
+		BuiltinPatterns: scope.Identifiers[symbol.Head].Function.BuiltinPatterns,
+		BuiltinBodies: scope.Identifiers[symbol.Head].Function.BuiltinBodies,
 	}
 
-	scope[symbol.Head] = GolspObject{
+	scope.Identifiers[symbol.Head] = GolspObject{
+		Scope: MakeScope(scope),
 		Type: GolspObjectTypeFunction,
 		Function: newfn,
 		Value: GolspUndefinedIdentifier(),
 	}
 
-	return scope[symbol.Head]
+	return scope.Identifiers[symbol.Head]
 }
 
 func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
@@ -219,7 +236,7 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 
 	for _, a := range arguments {
 		if a.Value.Type != STNodeTypeNumberLiteral {
-			return scope[UNDEFINED]
+			return Builtins.Identifiers[UNDEFINED]
 		}
 	}
 
@@ -236,6 +253,7 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
+		Scope: MakeScope(scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
@@ -251,7 +269,7 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 
 	for _, a := range arguments {
 		if a.Value.Type != STNodeTypeNumberLiteral {
-			return scope[UNDEFINED]
+			return Builtins.Identifiers[UNDEFINED]
 		}
 	}
 
@@ -273,6 +291,7 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
+		Scope: MakeScope(scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
@@ -288,7 +307,7 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 
 	for _, a := range arguments {
 		if a.Value.Type != STNodeTypeNumberLiteral {
-			return scope[UNDEFINED]
+			return Builtins.Identifiers[UNDEFINED]
 		}
 	}
 
@@ -305,6 +324,7 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
+		Scope: MakeScope(scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: value,
@@ -320,7 +340,7 @@ func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
 
 	for _, a := range arguments {
 		if a.Value.Type != STNodeTypeNumberLiteral {
-			return scope[UNDEFINED]
+			return Builtins.Identifiers[UNDEFINED]
 		}
 	}
 
@@ -343,6 +363,7 @@ func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
 	}
 
 	return GolspObject{
+		Scope: MakeScope(scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: val,
@@ -392,6 +413,7 @@ func GolspBuiltinSprintf(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	return GolspObject{
+		Scope: MakeScope(scope),
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: STNode{
@@ -423,5 +445,12 @@ func GolspEmptyFunction() GolspFunction {
 		FunctionBodies: make([]STNode, 0),
 		BuiltinPatterns: make([][]STNode, 0),
 		BuiltinBodies: make([]GolspBuiltinFunctionBody, 0),
+	}
+}
+
+func GolspEmptyScope() GolspScope {
+	return GolspScope{
+		Parent: nil,
+		Identifiers: nil,
 	}
 }

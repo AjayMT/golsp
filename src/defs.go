@@ -21,7 +21,10 @@ type STNode struct {
 	Children []STNode
 }
 
-type GolspScope map[string]GolspObject
+type GolspScope struct {
+	Parent *GolspScope
+	Identifiers map[string]GolspObject
+}
 
 type GolspBuiltinFunctionBody func(GolspScope, []STNode) GolspObject
 
@@ -42,6 +45,7 @@ const (
 )
 
 type GolspObject struct {
+	Scope GolspScope
 	Type GolspObjectType
 	Function GolspFunction
 	Value STNode
