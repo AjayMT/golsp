@@ -84,6 +84,25 @@ var Builtins = GolspScope{
 		Value: GolspUndefinedIdentifier(),
 	},
 
+	"sprintf": GolspObject{
+		Type: GolspObjectTypeFunction,
+		Function: GolspFunction{
+			FunctionPatterns: make([][]STNode, 0),
+			FunctionBodies: make([]STNode, 0),
+			BuiltinPatterns: [][]STNode{
+				[]STNode{
+					STNode{
+						Head: "s",
+						Type: STNodeTypeIdentifier,
+						Children: make([]STNode, 0),
+					},
+				},
+			},
+			BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinSprintf},
+		},
+		Value: GolspUndefinedIdentifier(),
+	},
+
 	"printf": GolspObject{
 		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
@@ -134,7 +153,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 		patternscope := MakeScope(scope)
 		for pattern[i].Type == STNodeTypeExpression {
 			obj := Eval(patternscope, pattern[i])
-			if obj.Type != GolspObjectTypeFunction {
+			if obj.Type == GolspObjectTypeLiteral {
 				pattern[i] = obj.Value
 			}
 		}
@@ -330,17 +349,17 @@ func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
 	}
 }
 
-func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
-	text := arguments[0].Head
-	text = text[1:len(text) - 1]
-
-	argscope := MakeScope(scope)
-	args := make([]interface{}, len(arguments) - 1)
-	for i, a := range arguments[1:] {
-		v := Eval(argscope, a)
-
+func formatStr(text string, objects []GolspObject) string {
+	args := make([]interface{}, len(objects))
+	for i, v := range objects {
 		if v.Type == GolspObjectTypeFunction {
-			args[i] = fmt.Sprintf("<function:%v>", a.Head)
+			args[i] = "<function>"
+			continue
+		}
+
+		if v.Type == GolspObjectTypeList {
+			args[i] = fmt.Sprintf("{%v}",
+				formatStr(strings.Repeat("%v ", len(v.Elements)), v.Elements))
 			continue
 		}
 
@@ -359,17 +378,35 @@ func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
 	text = strings.Replace(text, "\\n", "\n", -1)
 	text = strings.Replace(text, "\\\"", "\"", -1)
 
-	fmt.Printf(text, args...)
+	return fmt.Sprintf(text, args...)
+}
+
+func GolspBuiltinSprintf(scope GolspScope, arguments []STNode) GolspObject {
+	text := arguments[0].Head
+	text = text[1:len(text) - 1]
+
+	argscope := MakeScope(scope)
+	objects := make([]GolspObject, len(arguments) - 1)
+	for i, a := range arguments[1:] {
+		objects[i] = Eval(argscope, a)
+	}
 
 	return GolspObject{
 		Type: GolspObjectTypeLiteral,
 		Function: GolspEmptyFunction(),
 		Value: STNode{
-			Head: fmt.Sprintf("\"%v\"", text),
+			Head: fmt.Sprintf("\"%v\"", formatStr(text, objects)),
 			Type: STNodeTypeStringLiteral,
 			Children: make([]STNode, 0),
 		},
 	}
+}
+
+func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
+	obj := GolspBuiltinSprintf(scope, arguments)
+	fmt.Printf(obj.Value.Head[1:len(obj.Value.Head) - 1])
+
+	return obj
 }
 
 func GolspUndefinedIdentifier() STNode {

@@ -3,11 +3,24 @@
 
 package main
 
-import "math"
+import (
+	"math"
+	"strconv"
+)
 
 func compareNodes(a STNode, b STNode) bool {
 	if a.Type == STNodeTypeIdentifier {
 		return true
+	}
+
+	if a.Type != b.Type { return false }
+
+	if a.Type == STNodeTypeList {
+		for i, c := range a.Children {
+			if !compareNodes(c, b.Children[i]) {
+				return false
+			}
+		}
 	}
 
 	return a.Head == b.Head
@@ -70,6 +83,20 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 	}
 
+	if root.Type == STNodeTypeList {
+		elements := make([]GolspObject, len(root.Children))
+		for i, c := range root.Children {
+			elements[i] = Eval(scope, c)
+		}
+
+		return GolspObject{
+			Type: GolspObjectTypeList,
+			Function: GolspEmptyFunction(),
+			Value: GolspUndefinedIdentifier(),
+			Elements: elements,
+		}
+	}
+
 	if root.Type == STNodeTypeIdentifier {
 		obj, exists := scope[root.Head]
 		if !exists {
@@ -85,8 +112,24 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	exprscope := MakeScope(scope)
 	exprhead := Eval(exprscope, root.Children[0])
-	if exprhead.Type != GolspObjectTypeFunction {
+
+	if exprhead.Type == GolspObjectTypeLiteral {
 		return exprhead
+	}
+
+	if exprhead.Type == GolspObjectTypeList {
+		if len(root.Children) == 1 {
+			return exprhead
+		}
+
+		indexobj := Eval(exprscope, root.Children[1])
+		if indexobj.Value.Type != STNodeTypeNumberLiteral {
+			return scope[UNDEFINED]
+		}
+
+		index, _ := strconv.Atoi(indexobj.Value.Head)
+
+		return exprhead.Elements[index]
 	}
 
 	arguments := make([]STNode, len(root.Children) - 1)
