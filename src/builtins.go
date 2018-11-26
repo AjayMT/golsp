@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"strconv"
+	"time"
 )
 
 var Builtins = GolspScope{}
@@ -100,6 +101,22 @@ func InitializeBuiltins() {
 			Function: GolspFunction{
 				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinDo},
+			},
+		},
+
+		"go": GolspObject{
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinGo},
+			},
+		},
+
+		"sleep": GolspObject{
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{
+				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
+				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinSleep},
 			},
 		},
 
@@ -423,6 +440,30 @@ func GolspBuiltinDo(scope GolspScope, arguments []STNode) GolspObject {
 	}
 
 	return Eval(scope, scopenode)
+}
+
+func GolspBuiltinGo(scope GolspScope, arguments []STNode) GolspObject {
+	go GolspBuiltinDo(scope, arguments)
+
+	return Builtins.Identifiers[UNDEFINED]
+}
+
+func GolspBuiltinSleep(scope GolspScope, arguments []STNode) GolspObject {
+	argscope := MakeScope(&scope)
+	argobjects := make([]GolspObject, len(arguments))
+	for i, a := range arguments {
+		argobjects[i] = Eval(argscope, a)
+	}
+
+	if argobjects[0].Type != GolspObjectTypeLiteral ||
+		argobjects[0].Value.Type != STNodeTypeNumberLiteral {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	duration, _ := strconv.ParseFloat(argobjects[0].Value.Head, 64)
+	time.Sleep(time.Duration(duration) * time.Millisecond)
+
+	return Builtins.Identifiers[UNDEFINED]
 }
 
 func GolspBuiltinIf(scope GolspScope, arguments []STNode) GolspObject {

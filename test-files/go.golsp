@@ -1,0 +1,10 @@
+
+[= x 1]
+
+[go
+ [sleep 500]
+ [= x 2]
+ [printf "hello %v\n" x]]
+
+[sleep 1000]
+[printf "world %v\n" x]
