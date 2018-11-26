@@ -128,6 +128,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 
 		index, _ := strconv.Atoi(indexobj.Value.Head)
+		if index < 0 { index += len(exprhead.Elements) }
+		if index < 0 || index >= len(exprhead.Elements) {
+			return scope[UNDEFINED]
+		}
 
 		return exprhead.Elements[index]
 	}
