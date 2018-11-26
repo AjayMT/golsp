@@ -5,6 +5,9 @@
 
 [= cond [== b [/ [a b] 2]]]
 
+[printf "%v\n" [== undefined 1]]
+[printf "%v\n" [>= x y]]
+
 [if cond
  [printf "true\n"]]
 

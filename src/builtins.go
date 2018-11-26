@@ -35,7 +35,6 @@ func InitializeBuiltins() {
 				},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinEquals},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"+": GolspObject{
@@ -44,7 +43,6 @@ func InitializeBuiltins() {
 				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPlus},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"-": GolspObject{
@@ -53,7 +51,6 @@ func InitializeBuiltins() {
 				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMinus},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"*": GolspObject{
@@ -62,7 +59,6 @@ func InitializeBuiltins() {
 				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinMultiply},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"/": GolspObject{
@@ -71,7 +67,6 @@ func InitializeBuiltins() {
 				BuiltinPatterns: [][]STNode{make([]STNode, 0)},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinDivide},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"==": GolspBuiltinComparisonFunction("=="),
@@ -98,7 +93,6 @@ func InitializeBuiltins() {
 				},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinIf},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"sprintf": GolspObject{
@@ -114,7 +108,6 @@ func InitializeBuiltins() {
 				},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinSprintf},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 
 		"printf": GolspObject{
@@ -130,7 +123,6 @@ func InitializeBuiltins() {
 				},
 				BuiltinBodies: []GolspBuiltinFunctionBody{GolspBuiltinPrintf},
 			},
-			Value: GolspUndefinedIdentifier(),
 		},
 	}
 }
@@ -177,7 +169,6 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 		scope.Identifiers[symbol.Head] = GolspObject{
 			Scope: MakeScope(&scope),
 			Type: GolspObjectTypeFunction,
-			Value: GolspUndefinedIdentifier(),
 		}
 	}
 
@@ -217,7 +208,6 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeFunction,
 		Function: newfn,
-		Value: GolspUndefinedIdentifier(),
 	}
 
 	return scope.Identifiers[symbol.Head]
@@ -437,6 +427,8 @@ func GolspBuiltinIf(scope GolspScope, arguments []STNode) GolspObject {
 			n, _ := strconv.ParseFloat(condObj.Value.Head, 64)
 			cond = n != 0
 		}
+
+		if condObj.Value.Head == UNDEFINED { cond = false }
 	}
 
 	if cond { return Eval(argscope, arguments[1]) }
@@ -460,9 +452,37 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 			return Builtins.Identifiers[UNDEFINED]
 		}
 
+		// TODO handle lists?
+
 		if arguments[0].Type != GolspObjectTypeLiteral ||
-			arguments[1].Type != arguments[0].Type {
-			return Builtins.Identifiers[UNDEFINED]
+			arguments[1].Type != GolspObjectTypeLiteral {
+			return GolspObject{
+				Scope: MakeScope(&scope),
+				Type: GolspObjectTypeLiteral,
+				Value: STNode{
+					Head: "0",
+					Type: STNodeTypeNumberLiteral,
+				},
+			}
+		}
+
+		if arguments[0].Value.Head == UNDEFINED ||
+			arguments[1].Value.Head == UNDEFINED {
+			result := arguments[0].Value.Head == UNDEFINED &&
+				arguments[1].Value.Head == UNDEFINED &&
+				strings.Contains(op, "=")
+
+			resultint := 0
+			if result { resultint = 1 }
+
+			return GolspObject{
+				Scope: MakeScope(&scope),
+				Type: GolspObjectTypeLiteral,
+				Value: STNode{
+					Head: strconv.Itoa(resultint),
+					Type: STNodeTypeNumberLiteral,
+				},
+			}
 		}
 
 		argtype := arguments[0].Value.Type
@@ -521,26 +541,20 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 	return GolspObject{
 		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{
-			FunctionPatterns: make([][]STNode, 0),
-			FunctionBodies: make([]STNode, 0),
 			BuiltinPatterns: [][]STNode{
 				[]STNode{
 					STNode{
 						Head: "a",
 						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
 					},
 					STNode{
 						Head: "b",
 						Type: STNodeTypeIdentifier,
-						Children: make([]STNode, 0),
 					},
 				},
 			},
 			BuiltinBodies: []GolspBuiltinFunctionBody{fn},
 		},
-		Value: GolspUndefinedIdentifier(),
-		Elements: make([]GolspObject, 0),
 	}
 }
 

@@ -101,14 +101,12 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 		return GolspObject{
 			Type: GolspObjectTypeList,
-			Value: GolspUndefinedIdentifier(),
 			Elements: elements,
 		}
 	}
 
 	if root.Type == STNodeTypeIdentifier {
-		obj := LookupIdentifier(scope, root.Head)
-		return obj
+		return LookupIdentifier(scope, root.Head)
 	}
 
 	if len(root.Children) == 0 {
