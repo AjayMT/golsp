@@ -89,7 +89,6 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		root.Type == STNodeTypeNumberLiteral {
 		return GolspObject{
 			Type: GolspObjectTypeLiteral,
-			Function: GolspEmptyFunction(),
 			Value: root,
 		}
 	}
@@ -102,7 +101,6 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 		return GolspObject{
 			Type: GolspObjectTypeList,
-			Function: GolspEmptyFunction(),
 			Value: GolspUndefinedIdentifier(),
 			Elements: elements,
 		}

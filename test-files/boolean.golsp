@@ -1,0 +1,16 @@
+
+[= [a x] [* x 2]]
+
+[= b 3]
+
+[= cond [== b [/ [a b] 2]]]
+
+[if cond
+ [printf "true\n"]]
+
+[if [== "test" "test"]
+ [printf "test === test\n"]]
+
+[if [!= "test" "test"]
+ [printf "true expr\n"]
+ [printf "false expr\n"]]
