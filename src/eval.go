@@ -106,6 +106,63 @@ func isolateScope(scope GolspScope) map[string]GolspObject {
 	return identifiers
 }
 
+func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
+	for _, arg := range arguments {
+		if arg.Value.Type != STNodeTypeNumberLiteral {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+	}
+
+	if len(arguments) == 0 { return list }
+
+	if len(arguments) == 1 {
+		indexf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
+		index := int(indexf)
+		if index < 0 { index += len(list.Elements) }
+		if index < 0 || index >= len(list.Elements) {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+		return list.Elements[index]
+	}
+
+	startf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
+	start := int(startf)
+	endf, _ := strconv.ParseFloat(arguments[1].Value.Head, 64)
+	end := int(endf)
+	step := 1
+	if len(arguments) > 2 {
+		stepf, _ := strconv.ParseFloat(arguments[2].Value.Head, 64)
+		step = int(stepf)
+	}
+
+	if start < 0 { start += len(list.Elements) }
+	if end < 0 { end += len(list.Elements) }
+
+	if start < 0 || start >= len(list.Elements) {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+	if end < 0 || end >= len(list.Elements) {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+	if step >= len(list.Elements) || step <= -len(list.Elements) {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	slice := GolspObject{
+		Type: GolspObjectTypeList,
+		Elements: make([]GolspObject, 0),
+	}
+
+	for i := start; i != end; i += step {
+		if i > end && step > 0 { break }
+		if i < end && step < 0 { break }
+
+		slice.Elements = append(slice.Elements, list.Elements[i])
+	}
+
+	return slice
+}
+
 func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
 		newscope := GolspScope{
@@ -155,22 +212,13 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	if exprhead.Type == GolspObjectTypeList {
-		if len(root.Children) == 1 {
-			return exprhead
+		argscope := MakeScope(&scope)
+		argobjects := make([]GolspObject, len(root.Children) - 1)
+		for i, c := range root.Children[1:] {
+			argobjects[i] = Eval(argscope, c)
 		}
 
-		indexobj := Eval(scope, root.Children[1])
-		if indexobj.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-
-		index, _ := strconv.Atoi(indexobj.Value.Head)
-		if index < 0 { index += len(exprhead.Elements) }
-		if index < 0 || index >= len(exprhead.Elements) {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-
-		return exprhead.Elements[index]
+		return evalSlice(exprhead, argobjects)
 	}
 
 	arguments := make([]STNode, len(root.Children) - 1)
