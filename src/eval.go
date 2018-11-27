@@ -8,31 +8,30 @@ import (
 	"strconv"
 )
 
-func compareNodes(a STNode, b STNode) bool {
-	if a.Type == STNodeTypeIdentifier {
-		return true
+func comparePatternNode(pattern STNode, arg GolspObject) bool {
+	if pattern.Type == STNodeTypeIdentifier { return true }
+
+	if pattern.Type == STNodeTypeStringLiteral ||
+		pattern.Type == STNodeTypeNumberLiteral {
+		return arg.Value.Head == pattern.Head
 	}
 
-	if a.Type != b.Type { return false }
+	if pattern.Type == STNodeTypeList {
+		if arg.Type != GolspObjectTypeList { return false }
+		if len(pattern.Children) != len(arg.Elements) { return false }
 
-	if a.Type == STNodeTypeList {
-		for i, c := range a.Children {
-			if !compareNodes(c, b.Children[i]) {
+		for i, c := range pattern.Children {
+			if !comparePatternNode(c, arg.Elements[i]) {
 				return false
 			}
 		}
 	}
 
-	return a.Head == b.Head
+	return true
 }
 
-func matchPatterns(fn GolspFunction, pattern []STNode) int {
+func matchPatterns(fn GolspFunction, pattern []GolspObject) int {
 	patterns := fn.FunctionPatterns
-
-	if len(fn.BuiltinPatterns) > 0 {
-		patterns = fn.BuiltinPatterns
-	}
-
 	bestmatchscore := 0
 	bestmatchindex := 0
 
@@ -41,7 +40,7 @@ func matchPatterns(fn GolspFunction, pattern []STNode) int {
 		minlen := int(math.Min(float64(len(p)), float64(len(pattern))))
 
 		for j := 0; j < minlen; j++ {
-			if compareNodes(p[j], pattern[j]) { score++ }
+			if comparePatternNode(p[j], pattern[j]) { score++ }
 		}
 
 		if score > bestmatchscore {
@@ -141,10 +140,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if start < 0 || start >= len(list.Elements) {
 		return Builtins.Identifiers[UNDEFINED]
 	}
-	if end < 0 || end >= len(list.Elements) {
-		return Builtins.Identifiers[UNDEFINED]
-	}
-	if step >= len(list.Elements) || step <= -len(list.Elements) {
+	if end < 0 || end > len(list.Elements) {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
@@ -153,7 +149,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 		Elements: make([]GolspObject, 0),
 	}
 
-	for i := start; i != end; i += step {
+	for i := start; i != end && i < len(list.Elements) && i >= 0; i += step {
 		if i > end && step > 0 { break }
 		if i < end && step < 0 { break }
 
@@ -228,10 +224,9 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	fn := exprhead.Function
 	builtin := len(fn.BuiltinPatterns) > 0
-	patternindex := matchPatterns(fn, arguments)
 
 	if builtin {
-		return fn.BuiltinBodies[patternindex](scope, arguments)
+		return fn.BuiltinBodies[0](scope, arguments)
 	}
 
 	// Eval function
@@ -241,13 +236,9 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	for i, arg := range arguments {
 		obj := Eval(argscope, arg)
 		argobjects[i] = obj
-
-		if obj.Type != GolspObjectTypeFunction {
-			arguments[i] = obj.Value
-		}
 	}
 
-	patternindex = matchPatterns(fn, arguments)
+	patternindex := matchPatterns(fn, argobjects)
 	pattern := fn.FunctionPatterns[patternindex]
 
 	if len(arguments) < len(pattern) {

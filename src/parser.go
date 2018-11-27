@@ -12,9 +12,11 @@ import (
 var LiteralDelimiters = map[string]string{
 	"\"": "\"",
 	"#": "\n",
+	":": ":",
 }
 
 const LiteralEscape = '\\'
+const SpreadOperator = "::"
 
 var LiteralDelimiterTypes = map[string]STNodeType{
 	"\"": STNodeTypeStringLiteral,
@@ -65,7 +67,7 @@ func makeST(head string, tokens []string) (STNode, []string) {
 		Children: make([]STNode, 0),
 	}
 
-	if !delimiter {
+	if !delimiter && head != SpreadOperator {
 		current.Type = STNodeTypeIdentifier
 		_, err := strconv.ParseFloat(head, 64)
 
@@ -79,6 +81,11 @@ func makeST(head string, tokens []string) (STNode, []string) {
 			current.Type = literaltype
 		}
 
+		if tokens[0] == SpreadOperator {
+			current.Spread = true
+			tokens = tokens[1:]
+		}
+
 		return current, tokens
 	}
 
@@ -87,6 +94,11 @@ func makeST(head string, tokens []string) (STNode, []string) {
 		tokens = tokens[1:]
 
 		if token == TokenDelimiters[current.Head] {
+			if len(tokens) > 0 && tokens[0] == SpreadOperator {
+				current.Spread = true
+				tokens = tokens[1:]
+			}
+
 			return current, tokens
 		}
 
@@ -134,6 +146,11 @@ func Tokenize(input string) []string {
 		_, literal := LiteralDelimiters[string(r)]
 
 		if literal {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
+
 			len, str := parseLiteral(string(r), runes[i + 1:])
 			i += len
 			tokens = append(tokens, string(r) + str)

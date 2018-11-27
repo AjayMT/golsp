@@ -6,6 +6,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	// "fmt"
 )
 
 func main() {
@@ -15,4 +16,5 @@ func main() {
 	tokens := Tokenize(string(input))
 	tree := MakeST(tokens)
 	Eval(Builtins, tree)
+	// fmt.Println(PrintST(tree))
 }

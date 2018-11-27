@@ -19,6 +19,7 @@ type STNode struct {
 	Head string
 	Type STNodeType
 	Children []STNode
+	Spread bool
 }
 
 type GolspScope struct {

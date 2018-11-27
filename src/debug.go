@@ -13,6 +13,7 @@ func PrintST(root STNode) string {
 
 	str += "\nHead: \"" + root.Head +
 		"\"\nType: " + strconv.Itoa(int(root.Type)) +
+		"\nSpread: " + strconv.FormatBool(root.Spread) +
 		"\nChildren: ("
 
 	for _, child := range root.Children {
