@@ -152,13 +152,18 @@ func InitializeBuiltins() {
 	}
 }
 
-func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
+func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	if len(arguments) < 2 {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
-	symbol := arguments[0]
-	value := arguments[1]
+	if arguments[0].Type != GolspObjectTypeBuiltinArgument ||
+		arguments[1].Type != GolspObjectTypeBuiltinArgument	{
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	symbol := arguments[0].Value
+	value := arguments[1].Value
 
 	if symbol.Type != STNodeTypeIdentifier &&
 		symbol.Type != STNodeTypeExpression {
@@ -239,11 +244,13 @@ func GolspBuiltinEquals(scope GolspScope, arguments []STNode) GolspObject {
 	return scope.Identifiers[symbol.Head]
 }
 
-func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
+func GolspBuiltinPlus(scope GolspScope, args []GolspObject) GolspObject {
 	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(&scope)
 	for i, a := range args {
-		arguments[i] = Eval(argscope, a)
+		if a.Type == GolspObjectTypeBuiltinArgument {
+			arguments[i] = Eval(argscope, a.Value)
+		} else { arguments[i] = a }
 	}
 
 	for _, a := range arguments {
@@ -270,11 +277,13 @@ func GolspBuiltinPlus(scope GolspScope, args []STNode) GolspObject {
 	}
 }
 
-func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
+func GolspBuiltinMinus(scope GolspScope, args []GolspObject) GolspObject {
 	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(&scope)
 	for i, a := range args {
-		arguments[i] = Eval(argscope, a)
+		if a.Type == GolspObjectTypeBuiltinArgument {
+			arguments[i] = Eval(argscope, a.Value)
+		} else { arguments[i] = a }
 	}
 
 	for _, a := range arguments {
@@ -306,11 +315,13 @@ func GolspBuiltinMinus(scope GolspScope, args []STNode) GolspObject {
 	}
 }
 
-func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
+func GolspBuiltinMultiply(scope GolspScope, args []GolspObject) GolspObject {
 	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(&scope)
 	for i, a := range args {
-		arguments[i] = Eval(argscope, a)
+		if a.Type == GolspObjectTypeBuiltinArgument {
+			arguments[i] = Eval(argscope, a.Value)
+		} else { arguments[i] = a }
 	}
 
 	for _, a := range arguments {
@@ -337,11 +348,13 @@ func GolspBuiltinMultiply(scope GolspScope, args []STNode) GolspObject {
 	}
 }
 
-func GolspBuiltinDivide(scope GolspScope, args []STNode) GolspObject {
+func GolspBuiltinDivide(scope GolspScope, args []GolspObject) GolspObject {
 	arguments := make([]GolspObject, len(args))
 	argscope := MakeScope(&scope)
 	for i, a := range args {
-		arguments[i] = Eval(argscope, a)
+		if a.Type == GolspObjectTypeBuiltinArgument {
+			arguments[i] = Eval(argscope, a.Value)
+		} else { arguments[i] = a }
 	}
 
 	for _, a := range arguments {
@@ -406,14 +419,19 @@ func formatStr(text string, objects []GolspObject) string {
 	return fmt.Sprintf(text, args...)
 }
 
-func GolspBuiltinSprintf(scope GolspScope, arguments []STNode) GolspObject {
-	text := arguments[0].Head
+func GolspBuiltinSprintf(scope GolspScope, arguments []GolspObject) GolspObject {
+	text := arguments[0].Value.Head
+
 	text = text[1:len(text) - 1]
 
 	argscope := MakeScope(&scope)
 	objects := make([]GolspObject, len(arguments) - 1)
 	for i, a := range arguments[1:] {
-		objects[i] = Eval(argscope, a)
+		if a.Type == GolspObjectTypeBuiltinArgument {
+			objects[i] = Eval(argscope, a.Value)
+		} else {
+			objects[i] = a
+		}
 	}
 
 	return GolspObject{
@@ -426,33 +444,49 @@ func GolspBuiltinSprintf(scope GolspScope, arguments []STNode) GolspObject {
 	}
 }
 
-func GolspBuiltinPrintf(scope GolspScope, arguments []STNode) GolspObject {
+func GolspBuiltinPrintf(scope GolspScope, arguments []GolspObject) GolspObject {
 	obj := GolspBuiltinSprintf(scope, arguments)
 	fmt.Printf(obj.Value.Head[1:len(obj.Value.Head) - 1])
 
 	return obj
 }
 
-func GolspBuiltinDo(scope GolspScope, arguments []STNode) GolspObject {
+func GolspBuiltinDo(scope GolspScope, arguments []GolspObject) GolspObject {
+	for _, a := range arguments {
+		if a.Type != GolspObjectTypeBuiltinArgument {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+	}
+
+	args := make([]STNode, len(arguments))
+
+	for i, c := range arguments {
+		args[i] = c.Value
+	}
+
 	scopenode := STNode{
 		Type: STNodeTypeScope,
-		Children: arguments,
+		Children: args,
 	}
 
 	return Eval(scope, scopenode)
 }
 
-func GolspBuiltinGo(scope GolspScope, arguments []STNode) GolspObject {
+func GolspBuiltinGo(scope GolspScope, arguments []GolspObject) GolspObject {
 	go GolspBuiltinDo(scope, arguments)
 
 	return Builtins.Identifiers[UNDEFINED]
 }
 
-func GolspBuiltinSleep(scope GolspScope, arguments []STNode) GolspObject {
+func GolspBuiltinSleep(scope GolspScope, arguments []GolspObject) GolspObject {
 	argscope := MakeScope(&scope)
 	argobjects := make([]GolspObject, len(arguments))
 	for i, a := range arguments {
-		argobjects[i] = Eval(argscope, a)
+		if a.Type == GolspObjectTypeBuiltinArgument {
+			argobjects[i] = Eval(argscope, a.Value)
+		} else {
+			argobjects[i] = a
+		}
 	}
 
 	if argobjects[0].Type != GolspObjectTypeLiteral ||
@@ -466,13 +500,16 @@ func GolspBuiltinSleep(scope GolspScope, arguments []STNode) GolspObject {
 	return Builtins.Identifiers[UNDEFINED]
 }
 
-func GolspBuiltinIf(scope GolspScope, arguments []STNode) GolspObject {
+func GolspBuiltinIf(scope GolspScope, arguments []GolspObject) GolspObject {
 	if len(arguments) < 2 {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
 	argscope := MakeScope(&scope)
-	condObj := Eval(argscope, arguments[0])
+	condObj := arguments[0]
+	if arguments[0].Type == GolspObjectTypeBuiltinArgument {
+		condObj = Eval(argscope, arguments[0].Value)
+	}
 	cond := false
 
 	if condObj.Type == GolspObjectTypeFunction { cond = true }
@@ -490,21 +527,35 @@ func GolspBuiltinIf(scope GolspScope, arguments []STNode) GolspObject {
 		if condObj.Value.Head == UNDEFINED { cond = false }
 	}
 
-	if cond { return Eval(argscope, arguments[1]) }
+	if cond {
+		if arguments[1].Type == GolspObjectTypeBuiltinArgument {
+			return Eval(argscope, arguments[1].Value)
+		}
+
+		return arguments[1]
+	}
 
 	if len(arguments) > 2 {
-		return Eval(argscope, arguments[2])
+		if arguments[2].Type == GolspObjectTypeBuiltinArgument {
+			return Eval(argscope, arguments[2].Value)
+		}
+
+		return arguments[2]
 	}
 
 	return Builtins.Identifiers[UNDEFINED]
 }
 
 func GolspBuiltinComparisonFunction(op string) GolspObject {
-	fn := func (scope GolspScope, args []STNode) GolspObject {
+	fn := func (scope GolspScope, args []GolspObject) GolspObject {
 		argscope := MakeScope(&scope)
 		arguments := make([]GolspObject, len(args))
 		for i, c := range args {
-			arguments[i] = Eval(argscope, c)
+			if c.Type == GolspObjectTypeBuiltinArgument {
+				arguments[i] = Eval(argscope, c.Value)
+			} else {
+				arguments[i] = c
+			}
 		}
 
 		if len(arguments) != 2 {

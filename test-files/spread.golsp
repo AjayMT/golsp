@@ -1,3 +1,22 @@
 
-[a::d b"str::"c]::
-{1 2 3 a b c}::
+[= a { 1 2 3 }]
+
+[= b { 4 5 6 }]
+
+[= c { a:: b:: }]
+
+[= [d] { a:: b:: c:: }]
+
+[= [q l] { * l:: }]
+
+[= [reverse list]
+ { [list -1 0 -1]:: [list 0] }]
+
+[printf "%v\n" c]
+[printf "%v\n" [d]]
+[printf "%v\n" [reverse c]]
+[printf "%v\n" [{ + 1 2 }::]]
+[printf "%v\n" [{ reverse { 1 2 3 } }::]]
+
+[printf "%v\n" [{ + 1 2 3 }:: 4]]
+[printf "%v\n" [[q { 4 5 6 }]::]]

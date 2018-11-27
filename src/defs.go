@@ -27,7 +27,7 @@ type GolspScope struct {
 	Identifiers map[string]GolspObject
 }
 
-type GolspBuiltinFunctionBody func(GolspScope, []STNode) GolspObject
+type GolspBuiltinFunctionBody func(GolspScope, []GolspObject) GolspObject
 
 type GolspFunction struct {
 	FunctionPatterns [][]STNode
@@ -40,6 +40,7 @@ type GolspFunction struct {
 type GolspObjectType int
 
 const (
+	GolspObjectTypeBuiltinArgument GolspObjectType = -1
 	GolspObjectTypeLiteral GolspObjectType = 0
 	GolspObjectTypeFunction = 1
 	GolspObjectTypeList GolspObjectType = 2

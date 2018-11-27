@@ -159,6 +159,17 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	return slice
 }
 
+func SpreadNode(scope GolspScope, node STNode) []GolspObject {
+	nodescope := MakeScope(&scope)
+	obj := Eval(nodescope, node)
+
+	if obj.Type != GolspObjectTypeList {
+		return []GolspObject{obj}
+	}
+
+	return obj.Elements
+}
+
 func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
 		newscope := GolspScope{
@@ -181,10 +192,19 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 	}
 
+	if root.Type == STNodeTypeIdentifier {
+		return LookupIdentifier(scope, root.Head)
+	}
+
 	if root.Type == STNodeTypeList {
-		elements := make([]GolspObject, len(root.Children))
-		for i, c := range root.Children {
-			elements[i] = Eval(scope, c)
+		var elements []GolspObject
+		for _, c := range root.Children {
+			if c.Spread {
+				spread := SpreadNode(scope, c)
+				for _, elem := range spread { elements = append(elements, elem) }
+			} else {
+				elements = append(elements, Eval(MakeScope(&scope), c))
+			}
 		}
 
 		return GolspObject{
@@ -193,15 +213,20 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 	}
 
-	if root.Type == STNodeTypeIdentifier {
-		return LookupIdentifier(scope, root.Head)
-	}
-
 	if len(root.Children) == 0 {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
-	exprhead := Eval(MakeScope(&scope), root.Children[0])
+	var exprhead GolspObject
+	var argobjects []GolspObject
+
+	if root.Children[0].Spread {
+		spread := SpreadNode(scope, root.Children[0])
+		exprhead = spread[0]
+		argobjects = spread[1:]
+	} else {
+		exprhead = Eval(MakeScope(&scope), root.Children[0])
+	}
 
 	if exprhead.Type == GolspObjectTypeLiteral {
 		return exprhead
@@ -209,39 +234,54 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	if exprhead.Type == GolspObjectTypeList {
 		argscope := MakeScope(&scope)
-		argobjects := make([]GolspObject, len(root.Children) - 1)
-		for i, c := range root.Children[1:] {
-			argobjects[i] = Eval(argscope, c)
+		for _, c := range root.Children[1:] {
+			if c.Spread {
+				spread := SpreadNode(argscope, c)
+				for _, obj := range spread { argobjects = append(argobjects, obj) }
+			} else {
+				argobjects = append(argobjects, Eval(argscope, c))
+			}
 		}
 
 		return evalSlice(exprhead, argobjects)
 	}
 
-	arguments := make([]STNode, len(root.Children) - 1)
-	for i, child := range root.Children[1:] {
-		arguments[i] = child
-	}
-
+	argscope := MakeScope(&scope)
 	fn := exprhead.Function
 	builtin := len(fn.BuiltinPatterns) > 0
 
 	if builtin {
-		return fn.BuiltinBodies[0](scope, arguments)
+		for _, c := range root.Children[1:] {
+			if c.Spread {
+				spread := SpreadNode(argscope, c)
+				for _, obj := range spread { argobjects = append(argobjects, obj) }
+			} else {
+				obj := GolspObject{
+					Type: GolspObjectTypeBuiltinArgument,
+					Value: c,
+				}
+				argobjects = append(argobjects, obj)
+			}
+		}
+
+		return fn.BuiltinBodies[0](scope, argobjects)
 	}
 
 	// Eval function
 
-	argscope := MakeScope(&scope)
-	argobjects := make([]GolspObject, len(arguments))
-	for i, arg := range arguments {
-		obj := Eval(argscope, arg)
-		argobjects[i] = obj
+	for _, c := range root.Children[1:] {
+		if c.Spread {
+			spread := SpreadNode(argscope, c)
+			for _, obj := range spread { argobjects = append(argobjects, obj) }
+		} else {
+			argobjects = append(argobjects, Eval(argscope, c))
+		}
 	}
 
 	patternindex := matchPatterns(fn, argobjects)
 	pattern := fn.FunctionPatterns[patternindex]
 
-	if len(arguments) < len(pattern) {
+	if len(argobjects) < len(pattern) {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
