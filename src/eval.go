@@ -72,11 +72,27 @@ func MakeScope(parent *GolspScope) GolspScope {
 	return newscope
 }
 
+func copyFunction(fn GolspFunction) GolspFunction {
+	copy := GolspFunction{
+		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
+		FunctionBodies: make([]STNode, len(fn.FunctionBodies)),
+		BuiltinPatterns: make([][]STNode, len(fn.BuiltinPatterns)),
+		BuiltinBodies: make([]GolspBuiltinFunctionBody, len(fn.BuiltinBodies)),
+	}
+
+	for i, p := range fn.FunctionPatterns { copy.FunctionPatterns[i] = p }
+	for i, p := range fn.FunctionBodies { copy.FunctionBodies[i] = p }
+	for i, p := range fn.BuiltinPatterns { copy.BuiltinPatterns[i] = p }
+	for i, p := range fn.BuiltinBodies { copy.BuiltinBodies[i] = p }
+
+	return copy
+}
+
 func copyObjectScope(object GolspObject) GolspObject {
 	newobject := GolspObject{
 		Type: object.Type,
 		Value: object.Value,
-		Function: object.Function,
+		Function: copyFunction(object.Function),
 		Elements: object.Elements,
 		Scope: GolspScope{
 			Parent: object.Scope.Parent,
