@@ -1,0 +1,27 @@
+
+[= [compose {} input] input]
+[= [compose functions input]
+ [compose [functions 0 -1] [[functions -1] input]]]
+
+[= [double x] [* x 2]]
+[= [++ x] [+ x 1]]
+
+[printf "%v\n" [compose { ++ double double ++ } 4]]
+
+[= [filter f {}] {}]
+[= [filter check list]
+ [if [check [list -1]]
+  { [filter check [list 0 -1]]:: [list -1] }
+  [filter check [list 0 -1]]]]
+
+[= [map f {}] {}]
+[= [map f list]
+ { [map f [list 0 -1]]:: [f [list -1]] }]
+
+[printf "%v\n" [filter [= [f x] [> x 2]] { 3 4 2 1 4 5 2 6 2 }]]
+[printf "%v\n" [map double { 1 2 3 4 }]]
+
+[= [sum 0] 0]
+[= [sum n] [+ [sum [- n 1]] n]]
+
+[printf "%v\n" [sum 5]]

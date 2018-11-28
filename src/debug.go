@@ -8,6 +8,20 @@ import (
 	"strings"
 )
 
+func PrintElements(list GolspObject) string {
+	str := ""
+
+	for _, elem := range list.Elements {
+		if elem.Type == GolspObjectTypeList {
+			str += "{ " + PrintElements(elem) + " }"
+		}
+
+		str += " " + elem.Value.Head
+	}
+
+	return str
+}
+
 func PrintST(root STNode) string {
 	str := ""
 

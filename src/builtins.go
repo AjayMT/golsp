@@ -455,12 +455,18 @@ func GolspBuiltinSleep(scope GolspScope, arguments []GolspObject) GolspObject {
 }
 
 func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
-	if len(arguments) < 2 {
+	for _, a := range args {
+		// TODO fix
+		if a.Type != GolspObjectTypeBuiltinArgument || a.Value.Spread {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+	}
+
+	if len(args) < 2 {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
-	condObj := arguments[0]
+	condObj := evalArgs(scope, args[0:1])[0]
 	cond := false
 
 	if condObj.Type == GolspObjectTypeFunction { cond = true }
@@ -478,8 +484,8 @@ func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
 		if condObj.Value.Head == UNDEFINED { cond = false }
 	}
 
-	if cond { return arguments[1] }
-	if len(arguments) > 2 { return arguments[2] }
+	if cond { return evalArgs(scope, args[1:2])[0] }
+	if len(args) > 2 { return evalArgs(scope, args[2:3])[0] }
 
 	return Builtins.Identifiers[UNDEFINED]
 }

@@ -91,11 +91,11 @@ func copyObjectScope(object GolspObject) GolspObject {
 	return newobject
 }
 
-func isolateScope(scope GolspScope) map[string]GolspObject {
+func IsolateScope(scope GolspScope) map[string]GolspObject {
 	identifiers := make(map[string]GolspObject)
 
 	if scope.Parent != nil {
-		identifiers = isolateScope(*(scope.Parent))
+		identifiers = IsolateScope(*(scope.Parent))
 	}
 
 	for k, o := range scope.Identifiers {
@@ -173,7 +173,7 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
 		newscope := GolspScope{
-			Identifiers: isolateScope(scope),
+			Identifiers: IsolateScope(scope),
 		}
 
 		var result GolspObject
@@ -237,6 +237,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		argobjects = spread[1:]
 	} else {
 		exprhead = Eval(MakeScope(&scope), root.Children[0])
+		exprhead.Scope.Identifiers = make(map[string]GolspObject)
 	}
 
 	if exprhead.Type == GolspObjectTypeLiteral {
