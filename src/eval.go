@@ -178,7 +178,12 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 		var result GolspObject
 		for _, child := range root.Children {
-			result = Eval(newscope, child)
+			if child.Spread {
+				spread := SpreadNode(newscope, child)
+				result = spread[len(spread) - 1]
+			} else {
+				result = Eval(newscope, child)
+			}
 		}
 
 		return result
@@ -219,9 +224,15 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	var exprhead GolspObject
 	var argobjects []GolspObject
+	argscope := MakeScope(&scope)
 
 	if root.Children[0].Spread {
 		spread := SpreadNode(scope, root.Children[0])
+
+		if len(spread) == 0 {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+
 		exprhead = spread[0]
 		argobjects = spread[1:]
 	} else {
@@ -233,7 +244,6 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	if exprhead.Type == GolspObjectTypeList {
-		argscope := MakeScope(&scope)
 		for _, c := range root.Children[1:] {
 			if c.Spread {
 				spread := SpreadNode(argscope, c)
@@ -246,22 +256,16 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return evalSlice(exprhead, argobjects)
 	}
 
-	argscope := MakeScope(&scope)
 	fn := exprhead.Function
 	builtin := len(fn.BuiltinPatterns) > 0
 
 	if builtin {
 		for _, c := range root.Children[1:] {
-			if c.Spread {
-				spread := SpreadNode(argscope, c)
-				for _, obj := range spread { argobjects = append(argobjects, obj) }
-			} else {
-				obj := GolspObject{
-					Type: GolspObjectTypeBuiltinArgument,
-					Value: c,
-				}
-				argobjects = append(argobjects, obj)
+			obj := GolspObject{
+				Type: GolspObjectTypeBuiltinArgument,
+				Value: c,
 			}
+			argobjects = append(argobjects, obj)
 		}
 
 		return fn.BuiltinBodies[0](scope, argobjects)

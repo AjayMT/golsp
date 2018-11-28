@@ -20,3 +20,10 @@
 
 [printf "%v\n" [{ + 1 2 3 }:: 4]]
 [printf "%v\n" [[q { 4 5 6 }]::]]
+
+[printf "%v\n"
+ [do
+  [= l { "trsaasdfd" "sdfjsdk" "dfkj" }]
+  l::]]
+
+[printf "%v\n" [{}::]]
