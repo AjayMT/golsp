@@ -4,9 +4,8 @@
  [compose [functions 0 -1] [[functions -1] input]]]
 
 [= [double x] [* x 2]]
-[= [++ x] [+ x 1]]
 
-[printf "%v\n" [compose { ++ double double ++ } 4]]
+[printf "%v\n" [compose { [lambda [x] [+ x 1]] double double [lambda [x] [+ x 1]] } 4]]
 
 [= [filter f {}] {}]
 [= [filter check list]
@@ -20,8 +19,3 @@
 
 [printf "%v\n" [filter [= [f x] [> x 2]] { 3 4 2 1 4 5 2 6 2 }]]
 [printf "%v\n" [map double { 1 2 3 4 }]]
-
-[= [sum 0] 0]
-[= [sum n] [+ [sum [- n 1]] n]]
-
-[printf "%v\n" [sum 5]]

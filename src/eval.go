@@ -250,6 +250,9 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		argobjects = spread[1:]
 	} else {
 		exprhead = Eval(MakeScope(&scope), root.Children[0])
+	}
+
+	if exprhead.Type == GolspObjectTypeFunction {
 		exprhead.Scope.Identifiers = make(map[string]GolspObject)
 	}
 
