@@ -148,7 +148,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	patternindex := 0
 	for index, p := range scope.Identifiers[symbol.Head].Function.FunctionPatterns {
 		i := 0
-		for i, node := range p {
+		for _, node := range p {
 			if i >= len(pattern) { break }
 			if node.Type != pattern[i].Type { continue }
 			if node.Type != STNodeTypeIdentifier &&

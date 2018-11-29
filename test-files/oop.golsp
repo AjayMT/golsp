@@ -1,0 +1,14 @@
+
+[= [newPerson name age]
+ [do
+  [= [person "name"] name]
+  [= [person "age"] age]
+  person
+ ]
+]
+
+[= ajay [newPerson "Ajay" 18]]
+[printf "ajay.name: %v\n" [ajay "name"]]
+[printf "ajay.age: %v\n" [ajay "age"]]
+[= [ajay "age"] 19]
+[printf "ajay.age: %v\n" [ajay "age"]]
