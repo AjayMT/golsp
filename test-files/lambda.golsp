@@ -1,0 +1,16 @@
+
+[= [compose {} input] input]
+
+[= [compose functions input]
+ [compose
+  [functions 0 -1]
+  [[functions -1] input]
+ ]
+]
+
+[printf "%v\n"
+ [compose
+  { [lambda [x] [+ x 5]] [lambda [x] [* x 2]] }
+  7
+ ]
+]

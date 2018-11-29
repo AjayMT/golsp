@@ -24,6 +24,11 @@ func InitializeBuiltins() {
 			Function: GolspFunction{BuiltinFunc: GolspBuiltinEquals},
 		},
 
+		"lambda": GolspObject{
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{BuiltinFunc: GolspBuiltinLambda},
+		},
+
 		"+": GolspObject{
 			Type: GolspObjectTypeFunction,
 			Function: GolspFunction{BuiltinFunc: GolspBuiltinPlus},
@@ -181,6 +186,46 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	}
 
 	return scope.Identifiers[symbol.Head]
+}
+
+func GolspBuiltinLambda(scope GolspScope, arguments []GolspObject) GolspObject {
+	if len(arguments) < 2 {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	for _, arg := range arguments {
+		if arg.Type != GolspObjectTypeBuiltinArgument {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+	}
+
+	if arguments[0].Value.Type != STNodeTypeExpression {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	pattern := arguments[0].Value.Children
+	body := arguments[1].Value
+
+	for i, _ := range pattern {
+		patternscope := MakeScope(&scope)
+		for pattern[i].Type == STNodeTypeExpression {
+			obj := Eval(patternscope, pattern[i])
+			if obj.Type == GolspObjectTypeLiteral {
+				pattern[i] = obj.Value
+			}
+		}
+	}
+
+	fn := GolspFunction{
+		FunctionPatterns: [][]STNode{pattern},
+		FunctionBodies: []STNode{body},
+	}
+
+	return GolspObject{
+		Scope: MakeScope(&scope),
+		Type: GolspObjectTypeFunction,
+		Function: fn,
+	}
 }
 
 func GolspBuiltinPlus(scope GolspScope, args []GolspObject) GolspObject {
