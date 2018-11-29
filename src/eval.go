@@ -76,14 +76,11 @@ func copyFunction(fn GolspFunction) GolspFunction {
 	copy := GolspFunction{
 		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
 		FunctionBodies: make([]STNode, len(fn.FunctionBodies)),
-		BuiltinPatterns: make([][]STNode, len(fn.BuiltinPatterns)),
-		BuiltinBodies: make([]GolspBuiltinFunctionBody, len(fn.BuiltinBodies)),
 	}
 
 	for i, p := range fn.FunctionPatterns { copy.FunctionPatterns[i] = p }
 	for i, p := range fn.FunctionBodies { copy.FunctionBodies[i] = p }
-	for i, p := range fn.BuiltinPatterns { copy.BuiltinPatterns[i] = p }
-	for i, p := range fn.BuiltinBodies { copy.BuiltinBodies[i] = p }
+	copy.BuiltinFunc = fn.BuiltinFunc
 
 	return copy
 }
@@ -274,7 +271,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	fn := exprhead.Function
-	builtin := len(fn.BuiltinPatterns) > 0
+	builtin := fn.BuiltinFunc != nil
 
 	if builtin {
 		for _, c := range root.Children[1:] {
@@ -285,7 +282,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			argobjects = append(argobjects, obj)
 		}
 
-		return fn.BuiltinBodies[0](scope, argobjects)
+		return fn.BuiltinFunc(scope, argobjects)
 	}
 
 	// Eval function

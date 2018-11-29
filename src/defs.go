@@ -32,9 +32,7 @@ type GolspBuiltinFunctionBody func(GolspScope, []GolspObject) GolspObject
 type GolspFunction struct {
 	FunctionPatterns [][]STNode
 	FunctionBodies []STNode
-
-	BuiltinPatterns [][]STNode
-	BuiltinBodies []GolspBuiltinFunctionBody
+	BuiltinFunc GolspBuiltinFunctionBody
 }
 
 type GolspObjectType int
