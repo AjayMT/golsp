@@ -90,7 +90,7 @@ func copyObjectScope(object GolspObject) GolspObject {
 		Type: object.Type,
 		Value: object.Value,
 		Function: copyFunction(object.Function),
-		Elements: object.Elements,
+		Elements: make([]GolspObject, len(object.Elements)),
 		Scope: GolspScope{
 			Parent: object.Scope.Parent,
 			Identifiers: make(map[string]GolspObject),
@@ -99,6 +99,10 @@ func copyObjectScope(object GolspObject) GolspObject {
 
 	for k, o := range object.Scope.Identifiers {
 		newobject.Scope.Identifiers[k] = copyObjectScope(o)
+	}
+
+	for i, e := range object.Elements {
+		newobject.Elements[i] = copyObjectScope(e)
 	}
 
 	return newobject

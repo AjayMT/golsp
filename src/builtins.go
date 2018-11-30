@@ -49,6 +49,11 @@ func InitializeBuiltins() {
 			Function: GolspFunction{BuiltinFunc: GolspBuiltinDivide},
 		},
 
+		"%": GolspObject{
+			Type: GolspObjectTypeFunction,
+			Function: GolspFunction{BuiltinFunc: GolspBuiltinModulus},
+		},
+
 		"==": GolspBuiltinComparisonFunction("=="),
 		"!=": GolspBuiltinComparisonFunction("!="),
 		">": GolspBuiltinComparisonFunction(">"),
@@ -248,7 +253,6 @@ func GolspBuiltinPlus(scope GolspScope, args []GolspObject) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Value: val,
 	}
@@ -279,7 +283,6 @@ func GolspBuiltinMinus(scope GolspScope, args []GolspObject) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Value: val,
 	}
@@ -305,7 +308,6 @@ func GolspBuiltinMultiply(scope GolspScope, args []GolspObject) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Value: value,
 	}
@@ -337,7 +339,37 @@ func GolspBuiltinDivide(scope GolspScope, args []GolspObject) GolspObject {
 	}
 
 	return GolspObject{
-		Scope: MakeScope(&scope),
+		Type: GolspObjectTypeLiteral,
+		Value: val,
+	}
+}
+
+func GolspBuiltinModulus(scope GolspScope, args []GolspObject) GolspObject {
+	arguments := evalArgs(scope, args)
+	for _, a := range arguments {
+		if a.Value.Type != STNodeTypeNumberLiteral {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+	}
+
+	numerator := 1.0
+	if len(arguments) > 0 {
+		n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
+		numerator *= n
+	}
+
+	denominator := 1.0
+	for _, v := range arguments[1:] {
+		n, _ := strconv.ParseFloat(v.Value.Head, 64)
+		denominator *= n
+	}
+
+	val := STNode{
+		Head: fmt.Sprintf("%v", int(numerator) % int(denominator)),
+		Type: STNodeTypeNumberLiteral,
+	}
+
+	return GolspObject{
 		Type: GolspObjectTypeLiteral,
 		Value: val,
 	}
@@ -381,7 +413,6 @@ func GolspBuiltinSprintf(scope GolspScope, arguments []GolspObject) GolspObject 
 	objects := evalArgs(scope, arguments[1:])
 
 	return GolspObject{
-		Scope: MakeScope(&scope),
 		Type: GolspObjectTypeLiteral,
 		Value: STNode{
 			Head: fmt.Sprintf("\"%v\"", formatStr(text, objects)),
@@ -487,7 +518,6 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 		if arguments[0].Type != GolspObjectTypeLiteral ||
 			arguments[1].Type != GolspObjectTypeLiteral {
 			return GolspObject{
-				Scope: MakeScope(&scope),
 				Type: GolspObjectTypeLiteral,
 				Value: STNode{
 					Head: "0",
@@ -506,7 +536,6 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 			if result { resultint = 1 }
 
 			return GolspObject{
-				Scope: MakeScope(&scope),
 				Type: GolspObjectTypeLiteral,
 				Value: STNode{
 					Head: strconv.Itoa(resultint),
@@ -559,7 +588,6 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 		if result { resultint = 1 }
 
 		return GolspObject{
-			Scope: MakeScope(&scope),
 			Type: GolspObjectTypeLiteral,
 			Value: STNode{
 				Head: strconv.Itoa(resultint),
