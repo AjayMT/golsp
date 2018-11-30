@@ -212,7 +212,7 @@ func GolspBuiltinMathFunction(op string) GolspObject {
 				result -= n
 			}
 		case "*":
-			result := 1.0
+			result = 1.0
 			for _, v := range arguments {
 				n, _ := strconv.ParseFloat(v.Value.Head, 64)
 				result *= n
