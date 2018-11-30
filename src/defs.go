@@ -12,7 +12,7 @@ const (
 	STNodeTypeNumberLiteral STNodeType = 3
 	STNodeTypeList STNodeType = 4
 	STNodeTypeIdentifier STNodeType = 5
-	STNodeTypeComment = 6
+	STNodeTypeComment STNodeType = 6
 )
 
 type STNode struct {
@@ -40,7 +40,7 @@ type GolspObjectType int
 const (
 	GolspObjectTypeBuiltinArgument GolspObjectType = -1
 	GolspObjectTypeLiteral GolspObjectType = 0
-	GolspObjectTypeFunction = 1
+	GolspObjectTypeFunction GolspObjectType = 1
 	GolspObjectTypeList GolspObjectType = 2
 )
 

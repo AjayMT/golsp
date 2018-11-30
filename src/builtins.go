@@ -19,40 +19,14 @@ func InitializeBuiltins() {
 			Value: GolspUndefinedIdentifier(),
 		},
 
-		"=": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinEquals},
-		},
+		"=": GolspBuiltinFunctionObject(GolspBuiltinEquals),
+		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
 
-		"lambda": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinLambda},
-		},
-
-		"+": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinPlus},
-		},
-
-		"-": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinMinus},
-		},
-
-		"*": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinMultiply},
-		},
-
-		"/": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinDivide},
-		},
-
-		"%": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinModulus},
-		},
+		"+": GolspBuiltinMathFunction("+"),
+		"-": GolspBuiltinMathFunction("-"),
+		"*": GolspBuiltinMathFunction("*"),
+		"/": GolspBuiltinMathFunction("/"),
+		"%": GolspBuiltinMathFunction("%"),
 
 		"==": GolspBuiltinComparisonFunction("=="),
 		"!=": GolspBuiltinComparisonFunction("!="),
@@ -61,35 +35,12 @@ func InitializeBuiltins() {
 		">=": GolspBuiltinComparisonFunction(">="),
 		"<=": GolspBuiltinComparisonFunction("<="),
 
-		"if": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinIf},
-		},
-
-		"do": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinDo},
-		},
-
-		"go": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinGo},
-		},
-
-		"sleep": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinSleep},
-		},
-
-		"sprintf": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinSprintf},
-		},
-
-		"printf": GolspObject{
-			Type: GolspObjectTypeFunction,
-			Function: GolspFunction{BuiltinFunc: GolspBuiltinPrintf},
-		},
+		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
+		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
+		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
+		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
+		"sprintf": GolspBuiltinFunctionObject(GolspBuiltinSprintf),
+		"printf": GolspBuiltinFunctionObject(GolspBuiltinPrintf),
 	}
 }
 
@@ -233,146 +184,79 @@ func GolspBuiltinLambda(scope GolspScope, arguments []GolspObject) GolspObject {
 	}
 }
 
-func GolspBuiltinPlus(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
-	for _, a := range arguments {
-		if a.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
+func GolspBuiltinMathFunction(op string) GolspObject {
+	fn := func (scope GolspScope, args []GolspObject) GolspObject {
+		arguments := evalArgs(scope, args)
+		for _, a := range arguments {
+			if a.Value.Type != STNodeTypeNumberLiteral {
+				return Builtins.Identifiers[UNDEFINED]
+			}
+		}
+
+		result := 0.0
+
+		switch op {
+		case "+":
+			for _, v := range arguments {
+				n, _ := strconv.ParseFloat(v.Value.Head, 64)
+				result += n
+			}
+		case "-":
+			if len(arguments) > 0 {
+				n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
+				result += n
+			}
+
+			for _, v := range arguments[1:] {
+				n, _ := strconv.ParseFloat(v.Value.Head, 64)
+				result -= n
+			}
+		case "*":
+			result := 1.0
+			for _, v := range arguments {
+				n, _ := strconv.ParseFloat(v.Value.Head, 64)
+				result *= n
+			}
+		case "/":
+			numerator := 1.0
+			if len(arguments) > 0 {
+				n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
+				numerator *= n
+			}
+
+			denominator := 1.0
+			for _, v := range arguments[1:] {
+				n, _ := strconv.ParseFloat(v.Value.Head, 64)
+				denominator *= n
+			}
+
+			result = numerator / denominator
+		case "%":
+			numerator := 1.0
+			if len(arguments) > 0 {
+				n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
+				numerator *= n
+			}
+
+			denominator := 1.0
+			for _, v := range arguments[1:] {
+				n, _ := strconv.ParseFloat(v.Value.Head, 64)
+				denominator *= n
+			}
+
+			result = float64(int(numerator) % int(denominator))
+		}
+
+		return GolspObject{
+			Type: GolspObjectTypeLiteral,
+			Value: STNode{
+				Head: fmt.Sprintf("%v", result),
+				Type: STNodeTypeNumberLiteral,
+			},
 		}
 	}
 
-	sum := 0.0
-	for _, v := range arguments {
-		n, _ := strconv.ParseFloat(v.Value.Head, 64)
-		sum += n
-	}
-
-	val := STNode{
-		Head: fmt.Sprintf("%v", sum),
-		Type: STNodeTypeNumberLiteral,
-	}
-
-	return GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Value: val,
-	}
-}
-
-func GolspBuiltinMinus(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
-	for _, a := range arguments {
-		if a.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-	}
-
-	sum := 0.0
-	if len(arguments) > 0 {
-		n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-		sum += n
-	}
-
-	for _, v := range arguments[1:] {
-		n, _ := strconv.ParseFloat(v.Value.Head, 64)
-		sum -= n
-	}
-
-	val := STNode{
-		Head: fmt.Sprintf("%v", sum),
-		Type: STNodeTypeNumberLiteral,
-	}
-
-	return GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Value: val,
-	}
-}
-
-func GolspBuiltinMultiply(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
-	for _, a := range arguments {
-		if a.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-	}
-
-	product := 1.0
-	for _, v := range arguments {
-		n, _ := strconv.ParseFloat(v.Value.Head, 64)
-		product *= n
-	}
-
-	value := STNode{
-		Head: fmt.Sprintf("%v", product),
-		Type: STNodeTypeNumberLiteral,
-	}
-
-	return GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Value: value,
-	}
-}
-
-func GolspBuiltinDivide(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
-	for _, a := range arguments {
-		if a.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-	}
-
-	numerator := 1.0
-	if len(arguments) > 0 {
-		n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-		numerator *= n
-	}
-
-	denominator := 1.0
-	for _, v := range arguments[1:] {
-		n, _ := strconv.ParseFloat(v.Value.Head, 64)
-		denominator *= n
-	}
-
-	val := STNode{
-		Head: fmt.Sprintf("%v", numerator / denominator),
-		Type: STNodeTypeNumberLiteral,
-	}
-
-	return GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Value: val,
-	}
-}
-
-func GolspBuiltinModulus(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
-	for _, a := range arguments {
-		if a.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-	}
-
-	numerator := 1.0
-	if len(arguments) > 0 {
-		n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-		numerator *= n
-	}
-
-	denominator := 1.0
-	for _, v := range arguments[1:] {
-		n, _ := strconv.ParseFloat(v.Value.Head, 64)
-		denominator *= n
-	}
-
-	val := STNode{
-		Head: fmt.Sprintf("%v", int(numerator) % int(denominator)),
-		Type: STNodeTypeNumberLiteral,
-	}
-
-	return GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Value: val,
-	}
+	return GolspBuiltinFunctionObject(fn)
 }
 
 func formatStr(text string, objects []GolspObject) string {
@@ -596,6 +480,10 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 		}
 	}
 
+	return GolspBuiltinFunctionObject(fn)
+}
+
+func GolspBuiltinFunctionObject(fn GolspBuiltinFunction) GolspObject {
 	return GolspObject{
 		Type: GolspObjectTypeFunction,
 		Function: GolspFunction{BuiltinFunc: fn},

@@ -17,3 +17,7 @@
 
 [printf "[doge \"chuchu\"]: %v\n" [doge "chuchu"]]
 [printf "[doge \"hello\"]: %v\n" [doge "hello"]]
+
+[= [not x] [% [+ x 1] 2]]
+[printf "%v\n" [not 1]]
+[printf "%v\n" [not 0]]
