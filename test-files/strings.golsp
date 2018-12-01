@@ -26,7 +26,7 @@
   ]
 ]
 
-[= [joinstr] ""]
+[= [joinstr s] s]
 [= [joinstr head tail::] [sprintf "%v%v" head [joinstr tail::]]]
 
 [printf "%v\n" [joinstr [mergesort > { sentence:: }]::]]

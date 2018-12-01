@@ -221,6 +221,10 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	nodescope := MakeScope(&scope)
 	obj := Eval(nodescope, node)
 
+	if obj.Value.Head == UNDEFINED {
+		return make([]GolspObject, 0)
+	}
+
 	if obj.Type != GolspObjectTypeList &&
 		obj.Value.Type != STNodeTypeStringLiteral {
 		return []GolspObject{obj}
