@@ -44,6 +44,31 @@ func InitializeBuiltins() {
 	}
 }
 
+func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
+	for i, node1 := range pattern1 {
+		if i >= len(pattern2) { return false }
+
+		node2 := pattern2[i]
+
+		if node1.Type != node2.Type { return false }
+
+		if node1.Type == STNodeTypeStringLiteral ||
+			node1.Type == STNodeTypeNumberLiteral {
+			if node1.Head != node2.Head { return false }
+		}
+
+		if node1.Spread != node2.Spread { return false }
+
+		if node1.Type == STNodeTypeList {
+			if !comparePatterns(node1.Children, node2.Children) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	if len(arguments) < 2 {
 		return Builtins.Identifiers[UNDEFINED]
@@ -108,17 +133,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	patternexists := false
 	patternindex := 0
 	for index, p := range scope.Identifiers[symbol.Head].Function.FunctionPatterns {
-		i := 0
-		for _, node := range p {
-			if i >= len(pattern) { break }
-			if node.Type != pattern[i].Type { continue }
-			if node.Type != STNodeTypeIdentifier &&
-				node.Head != pattern[i].Head { continue }
-
-			i++
-		}
-
-		if i == len(p) && i == len(pattern) {
+		if comparePatterns(pattern, p) {
 			patternexists = true
 			patternindex = index
 			break

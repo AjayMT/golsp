@@ -1,47 +1,54 @@
 
 [= [compose {} input] input]
-[= [compose functions input]
- [compose [functions 0 -1] [[functions -1] input]]]
+[= [compose { head tail:: } input]
+ [compose
+  tail
+  [head input]
+ ]
+]
 
 [= [double x] [* x 2]]
 
 [printf "%v\n" [compose { [lambda [x] [+ x 1]] double double [lambda [x] [+ x 1]] } 4]]
 
 [= [filter f {}] {}]
-[= [filter check list]
- [if [check [list -1]]
-  { [filter check [list 0 -1]]:: [list -1] }
-  [filter check [list 0 -1]]]]
+[= [filter check { head tail:: }]
+ [if [check head]
+  { head [filter check tail]:: }
+  [filter check tail]
+ ]
+]
 
 [= [map f {}] {}]
-[= [map f list]
- { [map f [list 0 -1]]:: [f [list -1]] }]
+[= [map f { head tail:: }]
+ { [f head] [map f tail]:: }]
 
-[printf "%v\n" [filter [= [f x] [> x 2]] { 3 4 2 1 4 5 2 6 2 }]]
-[printf "%v\n" [map double { 1 2 3 4 }]]
+[printf "%v\n" [filter [lambda [x] [> x 2]] { 3 4 2 1 4 5 2 6 2 }]]
+[printf "%v\n" [map [lambda [x] [* x x]] { 1 2 3 4 }]]
 
 [= [merge l1 {}] l1]
 [= [merge {} l2] l2]
-[= [merge l1 l2]
- [if [< [l1 0] [l2 0]]
-  { [l1 0] [merge [l1 1 undefined] [l2]]:: }
-  { [l2 0] [merge l1 [l2 1 undefined]]:: }
+[= [merge { headl taill:: } { headr tailr:: }]
+ [if [< headl headr]
+  { headl [merge taill { headr tailr:: }]:: }
+  { headr [merge { headl taill:: } tailr]:: }
  ]
 ]
 
 [= [len {}] 0]
-[= [len l] [+ 1 [len [l 1 undefined]]]]
+[= [len { _ tail:: }] [+ 1 [len tail]]]
 
 [= [mergesort {}] {}]
+[= [mergesort { x }] { x }]
 [= [mergesort list]
- [if [== 1 [len list]] list
-  [do
-   [= midpoint [/ [len list] 2]]
-   [= left [list 0 midpoint]]
-   [= right [list midpoint undefined]]
-   [merge [mergesort left] [mergesort right]]
-  ]
+ [do
+  [= midpoint [/ [len list] 2]]
+  [= left [list 0 midpoint]]
+  [= right [list midpoint undefined]]
+  [merge [mergesort left] [mergesort right]]
  ]
 ]
+
+[printf "%v\n" [merge { 1 2 3 4 } { 4 5 6 7 8 9 }]]
 
 [printf "%v\n" [mergesort { 1 12 3 23 41 5 4 32 12 17 20 75 23 }]]

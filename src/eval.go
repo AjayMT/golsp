@@ -19,12 +19,23 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 
 	if pattern.Type == STNodeTypeList {
 		if arg.Type != GolspObjectTypeList { return false }
-		if len(pattern.Children) != len(arg.Elements) { return false }
 
 		for i, c := range pattern.Children {
+			if c.Spread && c.Type == STNodeTypeIdentifier {
+				return len(arg.Elements) >= i
+			}
+
+			if len(arg.Elements) <= i {
+				return false
+			}
+
 			if !comparePatternNode(c, arg.Elements[i]) {
 				return false
 			}
+		}
+
+		if len(arg.Elements) > len(pattern.Children) {
+			return false
 		}
 	}
 
@@ -235,6 +246,50 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	return objects
 }
 
+func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObject) {
+	for i, symbol := range pattern {
+		if !(symbol.Type == STNodeTypeIdentifier || symbol.Type == STNodeTypeList) {
+			continue
+		}
+
+		if symbol.Type == STNodeTypeIdentifier {
+			if symbol.Spread {
+				exprhead.Scope.Identifiers[symbol.Head] = GolspObject{
+					Type: GolspObjectTypeList,
+					Elements: argobjects[i:],
+				}
+				break
+			}
+			exprhead.Scope.Identifiers[symbol.Head] = argobjects[i]
+		}
+
+		if argobjects[i].Type != GolspObjectTypeList { continue }
+
+		list := argobjects[i].Elements
+		for j, child := range symbol.Children {
+			if !(child.Type == STNodeTypeIdentifier || child.Type == STNodeTypeList) {
+				continue
+			}
+
+			if j > len(list) { break }
+
+			if child.Type == STNodeTypeList {
+				bindArguments(exprhead, child.Children, list[j].Elements)
+			}
+
+			if child.Spread {
+				exprhead.Scope.Identifiers[child.Head] = GolspObject{
+					Type: GolspObjectTypeList,
+					Elements: list[j:],
+				}
+				break
+			}
+
+			exprhead.Scope.Identifiers[child.Head] = list[j]
+		}
+	}
+}
+
 func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeScope {
 		newscope := GolspScope{
@@ -359,13 +414,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return Builtins.Identifiers[UNDEFINED]
 	}
 
-	for i, symbol := range pattern {
-		if symbol.Type != STNodeTypeIdentifier {
-			continue
-		}
-
-		exprhead.Scope.Identifiers[symbol.Head] = argobjects[i]
-	}
+	bindArguments(exprhead, pattern, argobjects)
 
 	return Eval(exprhead.Scope, fn.FunctionBodies[patternindex])
 }
