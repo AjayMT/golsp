@@ -367,7 +367,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	if exprhead.Type == GolspObjectTypeLiteral &&
-		exprhead.Value.Type == STNodeTypeNumberLiteral {
+		(exprhead.Value.Type == STNodeTypeNumberLiteral ||
+		exprhead.Value.Head == UNDEFINED) {
 		return exprhead
 	}
 
