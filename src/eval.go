@@ -154,7 +154,8 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 			return list.Elements[index]
 		}
 
-		str := fmt.Sprintf("\"%v\"", string(list.Value.Head[1:listlen + 1][index]))
+		liststr := []rune(list.Value.Head[1:listlen + 1])
+		str := fmt.Sprintf("\"%v\"", string(liststr[index:index + 1]))
 
 		return GolspObject{
 			Type: GolspObjectTypeLiteral,
@@ -186,13 +187,20 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if end < 0 { end += listlen }
 
 	slice := GolspObject{Type: list.Type}
+	slicestr := make([]rune, 0)
 	var liststr []rune
-	var slicestr []rune
 	if list.Type == GolspObjectTypeLiteral {
 		liststr = []rune(list.Value.Head[1:listlen + 1])
 	}
 
 	if start < 0 || start >= listlen {
+		if list.Type == GolspObjectTypeLiteral {
+			slice.Value = STNode{
+				Type: STNodeTypeStringLiteral,
+				Head: fmt.Sprintf("\"%v\"", string(slicestr)),
+			}
+		}
+
 		return slice
 	}
 
@@ -210,7 +218,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if list.Type == GolspObjectTypeLiteral {
 		slice.Value = STNode{
 			Type: STNodeTypeStringLiteral,
-			Head: fmt.Sprintf("\"%v\"", slicestr),
+			Head: fmt.Sprintf("\"%v\"", string(slicestr)),
 		}
 	}
 
@@ -310,7 +318,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		return result
+		return copyObjectScope(result)
 	}
 
 	if root.Type == STNodeTypeNumberLiteral || root.Type == STNodeTypeStringLiteral {
