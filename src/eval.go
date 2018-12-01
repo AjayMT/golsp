@@ -6,6 +6,7 @@ package main
 import (
 	"math"
 	"strconv"
+	"fmt"
 )
 
 func comparePatternNode(pattern STNode, arg GolspObject) bool {
@@ -123,54 +124,83 @@ func IsolateScope(scope GolspScope) map[string]GolspObject {
 }
 
 func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
-	for _, arg := range arguments {
-		if arg.Value.Type != STNodeTypeNumberLiteral {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-	}
-
 	if len(arguments) == 0 { return list }
+
+	listlen := len(list.Elements)
+	if list.Type == GolspObjectTypeLiteral {
+		listlen = len(list.Value.Head) - 2
+	}
 
 	if len(arguments) == 1 {
 		indexf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
 		index := int(indexf)
-		if index < 0 { index += len(list.Elements) }
-		if index < 0 || index >= len(list.Elements) {
+		if index < 0 { index += listlen }
+		if index < 0 || index >= listlen {
 			return Builtins.Identifiers[UNDEFINED]
 		}
-		return list.Elements[index]
+
+		if list.Type == GolspObjectTypeList {
+			return list.Elements[index]
+		}
+
+		str := fmt.Sprintf("\"%v\"", string(list.Value.Head[1:listlen + 1][index]))
+
+		return GolspObject{
+			Type: GolspObjectTypeLiteral,
+			Value: STNode{
+				Type: STNodeTypeStringLiteral,
+				Head: str,
+			},
+		}
 	}
 
 	startf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
 	start := int(startf)
-	endf, _ := strconv.ParseFloat(arguments[1].Value.Head, 64)
-	end := int(endf)
+	end := listlen
 	step := 1
-	if len(arguments) > 2 {
+
+	if len(arguments) > 2 && arguments[2].Value.Type == STNodeTypeNumberLiteral {
 		stepf, _ := strconv.ParseFloat(arguments[2].Value.Head, 64)
 		step = int(stepf)
+		if step == 0 { return Builtins.Identifiers[UNDEFINED] }
+		if step < 0 { end = -listlen - 1 }
 	}
 
-	if start < 0 { start += len(list.Elements) }
-	if end < 0 { end += len(list.Elements) }
-
-	if start < 0 || start >= len(list.Elements) {
-		return Builtins.Identifiers[UNDEFINED]
-	}
-	if end < 0 || end > len(list.Elements) {
-		return Builtins.Identifiers[UNDEFINED]
+	if arguments[1].Value.Type == STNodeTypeNumberLiteral {
+		endf, _ := strconv.ParseFloat(arguments[1].Value.Head, 64)
+		end = int(endf)
 	}
 
-	slice := GolspObject{
-		Type: GolspObjectTypeList,
-		Elements: make([]GolspObject, 0),
+	if start < 0 { start += listlen }
+	if end < 0 { end += listlen }
+
+	slice := GolspObject{Type: list.Type}
+	var liststr []rune
+	var slicestr []rune
+	if list.Type == GolspObjectTypeLiteral {
+		liststr = []rune(list.Value.Head[1:listlen + 1])
 	}
 
-	for i := start; i != end && i < len(list.Elements) && i >= 0; i += step {
-		if i > end && step > 0 { break }
-		if i < end && step < 0 { break }
+	if start < 0 || start >= listlen {
+		return slice
+	}
 
-		slice.Elements = append(slice.Elements, list.Elements[i])
+	for i := start; i != end; i += step {
+		if i >= listlen { break }
+		if i < 0 { break }
+
+		if slice.Type == GolspObjectTypeList {
+			slice.Elements = append(slice.Elements, list.Elements[i])
+		} else {
+			slicestr = append(slicestr, liststr[i])
+		}
+	}
+
+	if list.Type == GolspObjectTypeLiteral {
+		slice.Value = STNode{
+			Type: STNodeTypeStringLiteral,
+			Head: fmt.Sprintf("\"%v\"", slicestr),
+		}
 	}
 
 	return slice
@@ -180,11 +210,29 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	nodescope := MakeScope(&scope)
 	obj := Eval(nodescope, node)
 
-	if obj.Type != GolspObjectTypeList {
+	if obj.Type != GolspObjectTypeList &&
+		obj.Value.Type != STNodeTypeStringLiteral {
 		return []GolspObject{obj}
 	}
 
-	return obj.Elements
+	if obj.Type == GolspObjectTypeList {
+		return obj.Elements
+	}
+
+	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
+	objects := make([]GolspObject, len(str))
+
+	for i, r := range str {
+		objects[i] = GolspObject{
+			Type: GolspObjectTypeLiteral,
+			Value: STNode{
+				Type: STNodeTypeStringLiteral,
+				Head: fmt.Sprintf("\"%v\"", string(r)),
+			},
+		}
+	}
+
+	return objects
 }
 
 func Eval(scope GolspScope, root STNode) GolspObject {
@@ -206,8 +254,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return result
 	}
 
-	if root.Type == STNodeTypeStringLiteral ||
-		root.Type == STNodeTypeNumberLiteral {
+	if root.Type == STNodeTypeNumberLiteral || root.Type == STNodeTypeStringLiteral {
 		return GolspObject{
 			Type: GolspObjectTypeLiteral,
 			Value: root,
@@ -260,11 +307,13 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		exprhead.Scope.Identifiers = make(map[string]GolspObject)
 	}
 
-	if exprhead.Type == GolspObjectTypeLiteral {
+	if exprhead.Type == GolspObjectTypeLiteral &&
+		exprhead.Value.Type == STNodeTypeNumberLiteral {
 		return exprhead
 	}
 
-	if exprhead.Type == GolspObjectTypeList {
+	if exprhead.Type == GolspObjectTypeList ||
+		exprhead.Value.Type == STNodeTypeStringLiteral {
 		for _, c := range root.Children[1:] {
 			if c.Spread {
 				spread := SpreadNode(argscope, c)

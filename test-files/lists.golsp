@@ -5,7 +5,8 @@
 [= [b] {{ [+ [a 1] 3] [+ [a 0] 2] }:: 4}]
 
 [printf "%v\n" a]
-# [printf "%v\n" [a -1]]
+[printf "%v\n" [a -1]]
 [printf "%v\n" [b]]
 
 [printf "%v\n" [a -1 0 -1]]
+[printf "%v\n" [a 1 undefined]]

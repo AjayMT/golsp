@@ -1,0 +1,31 @@
+
+[= a "the-quick-brown-fox-jumps-over-the-lazy-dog"]
+
+[= [merge l1 {}] l1]
+[= [merge {} l2] l2]
+[= [merge l1 l2]
+ [if [< [l1 0] [l2 0]]
+  { [l1 0] [merge [l1 1 undefined] [l2]]:: }
+  { [l2 0] [merge l1 [l2 1 undefined]]:: }
+ ]
+]
+
+[= [len {}] 0]
+[= [len l] [+ 1 [len [l 1 undefined]]]]
+
+[= [mergesort {}] {}]
+[= [mergesort list]
+ [if [== 1 [len list]] list
+  [do
+   [= midpoint [/ [len list] 2]]
+   [= left [list 0 midpoint]]
+   [= right [list midpoint undefined]]
+   [merge [mergesort left] [mergesort right]]
+  ]
+ ]
+]
+
+[= [joinstr {}] ""]
+[= [joinstr list] [sprintf "%v%v" [list 0] [joinstr [list 1 undefined]]]]
+
+[printf "%v\n" [joinstr [mergesort { a:: }]]]
