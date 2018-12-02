@@ -306,15 +306,20 @@ func formatStr(text string, objects []GolspObject) string {
 	return fmt.Sprintf(text, args...)
 }
 
-func GolspBuiltinSprintf(scope GolspScope, arguments []GolspObject) GolspObject {
+func GolspBuiltinSprintf(scope GolspScope, args []GolspObject) GolspObject {
+	arguments := evalArgs(scope, args)
+
+	if arguments[0].Value.Type != STNodeTypeStringLiteral {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
 	text := arguments[0].Value.Head
 	text = text[1:len(text) - 1]
-	objects := evalArgs(scope, arguments[1:])
 
 	return GolspObject{
 		Type: GolspObjectTypeLiteral,
 		Value: STNode{
-			Head: fmt.Sprintf("\"%v\"", formatStr(text, objects)),
+			Head: fmt.Sprintf("\"%v\"", formatStr(text, arguments[1:])),
 			Type: STNodeTypeStringLiteral,
 		},
 	}
@@ -322,7 +327,9 @@ func GolspBuiltinSprintf(scope GolspScope, arguments []GolspObject) GolspObject 
 
 func GolspBuiltinPrintf(scope GolspScope, arguments []GolspObject) GolspObject {
 	obj := GolspBuiltinSprintf(scope, arguments)
-	fmt.Printf(obj.Value.Head[1:len(obj.Value.Head) - 1])
+	if obj.Value.Head != UNDEFINED {
+		fmt.Printf(obj.Value.Head[1:len(obj.Value.Head) - 1])
+	}
 
 	return obj
 }
@@ -369,18 +376,21 @@ func GolspBuiltinSleep(scope GolspScope, arguments []GolspObject) GolspObject {
 }
 
 func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
-	for _, a := range args {
-		// TODO fix
-		if a.Type != GolspObjectTypeBuiltinArgument || a.Value.Spread {
-			return Builtins.Identifiers[UNDEFINED]
+	arguments := []GolspObject{Builtins.Identifiers[UNDEFINED]}
+
+	if len(args) == 0 { return Builtins.Identifiers[UNDEFINED] }
+
+	if args[0].Type == GolspObjectTypeBuiltinArgument {
+		argscope := MakeScope(&scope)
+		if args[0].Value.Spread {
+			spread := SpreadNode(argscope, args[0].Value)
+			arguments = spread
+		} else {
+			arguments[0] = Eval(argscope, args[0].Value)
 		}
-	}
+	} else { arguments[0] = args[0] }
 
-	if len(args) < 2 {
-		return Builtins.Identifiers[UNDEFINED]
-	}
-
-	condObj := evalArgs(scope, args[0:1])[0]
+	condObj := arguments[0]
 	cond := false
 
 	if condObj.Type == GolspObjectTypeFunction { cond = true }
@@ -398,8 +408,15 @@ func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
 		if condObj.Value.Head == UNDEFINED { cond = false }
 	}
 
-	if cond { return evalArgs(scope, args[1:2])[0] }
-	if len(args) > 2 { return evalArgs(scope, args[2:3])[0] }
+	if cond {
+		if len(arguments) > 1 { return arguments[1] }
+		if len(args) > 1 { return evalArgs(scope, args[1:2])[0] }
+	}
+
+	if len(args) > 2 {
+		if len(arguments) > 2 { return arguments[2] }
+		if len(args) > 2 { return evalArgs(scope, args[2:3])[0] }
+	}
 
 	return Builtins.Identifiers[UNDEFINED]
 }
