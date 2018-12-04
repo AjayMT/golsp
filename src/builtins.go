@@ -413,10 +413,8 @@ func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
 		if len(args) > 1 { return evalArgs(scope, args[1:2])[0] }
 	}
 
-	if len(args) > 2 {
-		if len(arguments) > 2 { return arguments[2] }
-		if len(args) > 2 { return evalArgs(scope, args[2:3])[0] }
-	}
+	if len(arguments) > 2 { return arguments[2] }
+	if len(args) > 2 { return evalArgs(scope, args[2:3])[0] }
 
 	return Builtins.Identifiers[UNDEFINED]
 }
