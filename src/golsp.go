@@ -6,7 +6,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
-	// "fmt"
+	"fmt"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 
 	InitializeBuiltins()
 	tokens := Tokenize(string(input))
-	tree := MakeST(tokens)
-	Eval(Builtins, tree)
-	// fmt.Println(PrintST(tree))
+	// tree := MakeST(tokens)
+	// Eval(Builtins, tree)
+	fmt.Println(tokens)
 }

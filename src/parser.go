@@ -12,7 +12,11 @@ import (
 var LiteralDelimiters = map[string]string{
 	"\"": "\"",
 	"#": "\n",
-	":": ":",
+}
+
+var Operators = []string{
+	"::",
+	":",
 }
 
 const LiteralEscape = '\\'
@@ -134,17 +138,37 @@ func parseLiteral(delimiter string, input []rune) (int, string) {
 	return i, str
 }
 
+func matchOperator(runes []rune, index int) int {
+	matchindex := -1
+	matchscore := 0
+	r := runes[index]
+
+	for i, op := range Operators {
+		score := 0
+		if r != rune(op[0]) { continue }
+		if index + len(op) > len(runes) { continue }
+
+		opstr := string(runes[index:index + len(op)])
+		if op == opstr { score = len(op) }
+
+		if score > matchscore {
+			matchscore = score
+			matchindex = i
+		}
+	}
+
+	return matchindex
+}
+
 func Tokenize(input string) []string {
 	input = strings.TrimSpace(input)
 	runes := []rune(input)
-
 	token := ""
 	tokens := []string{token}
 
 	for i := 0; i < len(runes); i++ {
 		r := runes[i]
 		_, literal := LiteralDelimiters[string(r)]
-
 		if literal {
 			if len(token) > 0 {
 				tokens = append(tokens, token)
@@ -157,8 +181,20 @@ func Tokenize(input string) []string {
 			continue
 		}
 
-		_, delimiter := TokenDelimiters[string(r)]
+		opindex := matchOperator(runes, i)
+		if opindex != -1 {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
 
+			op := Operators[opindex]
+			i += len(op) - 1
+			tokens = append(tokens, op)
+			continue
+		}
+
+		_, delimiter := TokenDelimiters[string(r)]
 		if !delimiter && !unicode.IsSpace(r) {
 			token += string(r)
 			continue
@@ -174,6 +210,7 @@ func Tokenize(input string) []string {
 		}
 	}
 
+	if len(token) > 0 { tokens = append(tokens, token) }
 	tokens = append(tokens, "")
 
 	return tokens
