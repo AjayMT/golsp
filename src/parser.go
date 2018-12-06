@@ -14,13 +14,24 @@ var LiteralDelimiters = map[string]string{
 	"#": "\n",
 }
 
+type OperatorType int
+
+const (
+	OperatorTypeSpread OperatorType = 0
+	OperatorTypeZip OperatorType = 1
+)
+
 var Operators = []string{
-	"::",
+	"...",
 	":",
 }
 
+var OperatorTypes = map[string]OperatorType{
+	"...": OperatorTypeSpread,
+	":": OperatorTypeZip,
+}
+
 const LiteralEscape = '\\'
-const SpreadOperator = "::"
 
 var LiteralDelimiterTypes = map[string]STNodeType{
 	"\"": STNodeTypeStringLiteral,
@@ -64,6 +75,7 @@ func pruneComments(root STNode) STNode {
 
 func makeST(head string, tokens []string) (STNode, []string) {
 	nodetype, delimiter := TokenDelimiterTypes[head]
+	_, operator := OperatorTypes[head]
 
 	current := STNode{
 		Head: head,
@@ -71,7 +83,7 @@ func makeST(head string, tokens []string) (STNode, []string) {
 		Children: make([]STNode, 0),
 	}
 
-	if !delimiter && head != SpreadOperator {
+	if !delimiter && !operator {
 		current.Type = STNodeTypeIdentifier
 		_, err := strconv.ParseFloat(head, 64)
 
@@ -85,7 +97,8 @@ func makeST(head string, tokens []string) (STNode, []string) {
 			current.Type = literaltype
 		}
 
-		if tokens[0] == SpreadOperator {
+		nextoptype, nextop := OperatorTypes[tokens[0]]
+		if nextop && nextoptype == OperatorTypeSpread {
 			current.Spread = true
 			tokens = tokens[1:]
 		}
@@ -98,9 +111,12 @@ func makeST(head string, tokens []string) (STNode, []string) {
 		tokens = tokens[1:]
 
 		if token == TokenDelimiters[current.Head] {
-			if len(tokens) > 0 && tokens[0] == SpreadOperator {
-				current.Spread = true
-				tokens = tokens[1:]
+			if len(tokens) > 0 {
+				nextoptype, nextop := OperatorTypes[tokens[0]]
+				if nextop && nextoptype == OperatorTypeSpread {
+					current.Spread = true
+					tokens = tokens[1:]
+				}
 			}
 
 			return current, tokens
