@@ -9,14 +9,22 @@ import (
 	"fmt"
 )
 
+// comparePatternNode: Compare a node in a function pattern with an argument object
+// `pattern`: the pattern node
+// `arg`: the argument to compare with the pattern
+// this function returns whether the argument matches the pattern node
 func comparePatternNode(pattern STNode, arg GolspObject) bool {
+	// identifiers i.e non-literal patterns match everything
 	if pattern.Type == STNodeTypeIdentifier { return true }
 
+	// literal patterns match arguments that have the same value
 	if pattern.Type == STNodeTypeStringLiteral ||
 		pattern.Type == STNodeTypeNumberLiteral {
 		return arg.Value.Head == pattern.Head
 	}
 
+	// list patterns match if each of their elements match and the lists
+	// are of the same length, after accounting for spreading
 	if pattern.Type == STNodeTypeList {
 		if arg.Type != GolspObjectTypeList { return false }
 
@@ -24,35 +32,32 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 			if c.Spread && c.Type == STNodeTypeIdentifier {
 				return len(arg.Elements) >= i
 			}
-
-			if len(arg.Elements) <= i {
-				return false
-			}
-
-			if !comparePatternNode(c, arg.Elements[i]) {
-				return false
-			}
+			if len(arg.Elements) <= i { return false }
+			if !comparePatternNode(c, arg.Elements[i]) { return false }
 		}
 
-		if len(arg.Elements) > len(pattern.Children) {
-			return false
-		}
+		if len(arg.Elements) > len(pattern.Children) { return false }
 	}
 
 	return true
 }
 
-func matchPatterns(fn GolspFunction, pattern []GolspObject) int {
+// matchPatterns: Match a list of arguments to a particular function pattern
+// `fn`: the function whose patterns to check
+// `arguments`: the list of arguments to match to a pattern
+// this function returns the index of the best-matching pattern in function's
+// list of patterns
+func matchPatterns(fn GolspFunction, arguments []GolspObject) int {
 	patterns := fn.FunctionPatterns
 	bestmatchscore := 0
 	bestmatchindex := 0
 
 	for i, p := range patterns {
 		score := 0
-		minlen := int(math.Min(float64(len(p)), float64(len(pattern))))
+		minlen := int(math.Min(float64(len(p)), float64(len(arguments))))
 
 		for j := 0; j < minlen; j++ {
-			if comparePatternNode(p[j], pattern[j]) { score++ }
+			if comparePatternNode(p[j], arguments[j]) { score++ }
 		}
 
 		if score > bestmatchscore {
@@ -64,6 +69,11 @@ func matchPatterns(fn GolspFunction, pattern []GolspObject) int {
 	return bestmatchindex
 }
 
+// LookupIdentifier: lookup an identifier within a particular scope
+// `scope`: the scope in which to search for the identifier
+// `identifier`: the name of the identifier
+// this function returns the object corresponding to the identifier
+// or UNDEFINED
 func LookupIdentifier(scope GolspScope, identifier string) GolspObject {
 	obj, exists := scope.Identifiers[identifier]
 	if exists { return obj }
@@ -75,6 +85,10 @@ func LookupIdentifier(scope GolspScope, identifier string) GolspObject {
 	return Builtins.Identifiers[UNDEFINED]
 }
 
+// MakeScope: construct a new child scope that descends from a parent scope
+// `parent`: the parent scope
+// this function returns a new GolspScope object whose Parent points to
+// parent
 func MakeScope(parent *GolspScope) GolspScope {
 	newscope := GolspScope{
 		Parent: parent,
@@ -84,6 +98,9 @@ func MakeScope(parent *GolspScope) GolspScope {
 	return newscope
 }
 
+// copyFunction: Copy a GolspFunction object
+// `fn`: the function to copy
+// this function returns a copy of fn
 func copyFunction(fn GolspFunction) GolspFunction {
 	copy := GolspFunction{
 		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
@@ -97,7 +114,11 @@ func copyFunction(fn GolspFunction) GolspFunction {
 	return copy
 }
 
-func copyObjectScope(object GolspObject) GolspObject {
+// copyObject: Copy a GolspObject object
+// `object`: the object to copy
+// this function returns a copy of object. Note that it does not copy
+// object.Value since that property is never modified
+func copyObject(object GolspObject) GolspObject {
 	newobject := GolspObject{
 		Type: object.Type,
 		Value: object.Value,
@@ -110,16 +131,21 @@ func copyObjectScope(object GolspObject) GolspObject {
 	}
 
 	for k, o := range object.Scope.Identifiers {
-		newobject.Scope.Identifiers[k] = copyObjectScope(o)
+		newobject.Scope.Identifiers[k] = copyObject(o)
 	}
 
 	for i, e := range object.Elements {
-		newobject.Elements[i] = copyObjectScope(e)
+		newobject.Elements[i] = copyObject(e)
 	}
 
 	return newobject
 }
 
+// IsolateScope: 'Isolate' a scope object by copying all values from its parent
+// scopes into the scope object, effectively orphaning it and flattening its
+// inheritance tree
+// `scope`: the scope to isolate
+// this function returns the isolated scope's map of identifiers to objects
 func IsolateScope(scope GolspScope) map[string]GolspObject {
 	identifiers := make(map[string]GolspObject)
 
@@ -128,19 +154,21 @@ func IsolateScope(scope GolspScope) map[string]GolspObject {
 	}
 
 	for k, o := range scope.Identifiers {
-		identifiers[k] = copyObjectScope(o)
+		identifiers[k] = copyObject(o)
 	}
 
 	return identifiers
 }
 
+// evalSlice: Evaluate a slice expression, i.e `[list begin end step]`
+// `list`: the list or string that is sliced
+// `arguments`: the arguments passed in the expression
+// this function returns a slice of the list/string or UNDEFINED
 func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if len(arguments) == 0 { return list }
 
 	listlen := len(list.Elements)
-	if list.Type == GolspObjectTypeLiteral {
-		listlen = len(list.Value.Head) - 2
-	}
+	if list.Type == GolspObjectTypeLiteral { listlen = len(list.Value.Head) - 2 }
 
 	if len(arguments) == 1 {
 		indexf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
@@ -150,9 +178,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 			return Builtins.Identifiers[UNDEFINED]
 		}
 
-		if list.Type == GolspObjectTypeList {
-			return list.Elements[index]
-		}
+		if list.Type == GolspObjectTypeList { return list.Elements[index] }
 
 		liststr := []rune(list.Value.Head[1:listlen + 1])
 		str := fmt.Sprintf("\"%v\"", string(liststr[index:index + 1]))
@@ -225,22 +251,21 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	return slice
 }
 
+// SpreadNode: Apply the spread operator to a syntax tree node
+// `scope`: the scope within which the node is being spread
+// `node`: the node to spread
+// this function returns the list of GolspObjects that the node spreads to
 func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	nodescope := MakeScope(&scope)
 	obj := Eval(nodescope, node)
-
-	if obj.Value.Head == UNDEFINED {
-		return make([]GolspObject, 0)
-	}
+	if obj.Value.Head == UNDEFINED { return make([]GolspObject, 0) }
 
 	if obj.Type != GolspObjectTypeList &&
 		obj.Value.Type != STNodeTypeStringLiteral {
 		return []GolspObject{obj}
 	}
 
-	if obj.Type == GolspObjectTypeList {
-		return obj.Elements
-	}
+	if obj.Type == GolspObjectTypeList { return obj.Elements }
 
 	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
 	objects := make([]GolspObject, len(str))
@@ -258,6 +283,13 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	return objects
 }
 
+// bindArguments: Bind the arguments passed to a function to the function
+// object's Scope property
+// `exprhead`: the 'expression head' i.e function object
+// `pattern`: the matched pattern, based on which arguments will be bound
+// to identifiers
+// `argobjects`: the arguments passed to the function that will be bound to
+// identifiers
 func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObject) {
 	for i, symbol := range pattern {
 		if !(symbol.Type == STNodeTypeIdentifier || symbol.Type == STNodeTypeList) {
@@ -302,7 +334,15 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 	}
 }
 
+// Eval: Evaluate a syntax tree node within a scope
+// `scope`: the scope within which to evaluate the node
+// `root`: the root node to evaluate
+// this function returns the result of evaluating the node as a GolspObject
 func Eval(scope GolspScope, root STNode) GolspObject {
+	// root node is a scope -- it evaluates to the result of the last expression
+	// in the scope
+	// scope nodes are isolated from their parents to ensure that they do not
+	// cause side-effects, especially important for 'go' blocks
 	if root.Type == STNodeTypeScope {
 		newscope := GolspScope{
 			Identifiers: IsolateScope(scope),
@@ -318,9 +358,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		return copyObjectScope(result)
+		return copyObject(result)
 	}
 
+	// string and number literals simply evaluate to themselves
 	if root.Type == STNodeTypeNumberLiteral || root.Type == STNodeTypeStringLiteral {
 		return GolspObject{
 			Type: GolspObjectTypeLiteral,
@@ -328,10 +369,14 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 	}
 
+	// identifers evaluate to their corresponding values within the scope or UNDEFINED
 	if root.Type == STNodeTypeIdentifier {
 		return LookupIdentifier(scope, root.Head)
 	}
 
+	// 'list' type syntax tree nodes evaluate to 'list' type GolspObjects
+	// note that list elements are evaluated immediately, unlike quote expressions
+	// in Lisp
 	if root.Type == STNodeTypeList {
 		var elements []GolspObject
 		for _, c := range root.Children {
@@ -349,37 +394,45 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 	}
 
-	if len(root.Children) == 0 {
-		return Builtins.Identifiers[UNDEFINED]
-	}
+	// empty expressions evaluate to UNDEFINED
+	if len(root.Children) == 0 { return Builtins.Identifiers[UNDEFINED] }
 
+	// at this point the root node must be an expression
+
+	// exprhead is the head of the expression, aka the function
+	// that is being called, list that is being sliced, etc...
+	// argobjects is the rest of the expression, the arguments passed
+	// to exprhead
+	// arguments are evaluated in their own scope (argscope) to prevent side effects
 	var exprhead GolspObject
 	var argobjects []GolspObject
 	argscope := MakeScope(&scope)
 
 	if root.Children[0].Spread {
 		spread := SpreadNode(scope, root.Children[0])
-
-		if len(spread) == 0 {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-
+		if len(spread) == 0 { return Builtins.Identifiers[UNDEFINED] }
 		exprhead = spread[0]
 		argobjects = spread[1:]
 	} else {
 		exprhead = Eval(MakeScope(&scope), root.Children[0])
 	}
 
+	// the function's argument scope is cleared every time it is called
+	// since the arguments will be bound again
 	if exprhead.Type == GolspObjectTypeFunction {
 		exprhead.Scope.Identifiers = make(map[string]GolspObject)
 	}
 
+	// evaluating an expression with a number literal or UNDEFINED head
+	// produces the literal or UNDEFINED
+	// i.e [1 2 3] evals to 1, [undefined a b c] evals to undefined
 	if exprhead.Type == GolspObjectTypeLiteral &&
 		(exprhead.Value.Type == STNodeTypeNumberLiteral ||
 		exprhead.Value.Head == UNDEFINED) {
 		return exprhead
 	}
 
+	// if exprhead is a list or string literal, slice it
 	if exprhead.Type == GolspObjectTypeList ||
 		exprhead.Value.Type == STNodeTypeStringLiteral {
 		for _, c := range root.Children[1:] {
@@ -394,9 +447,14 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return evalSlice(exprhead, argobjects)
 	}
 
+	// at this point the expression must be a function call
+
 	fn := exprhead.Function
 	builtin := fn.BuiltinFunc != nil
 
+	// builtin functions are called without evaluating the
+	// argument syntax tree nodes, these functions can decide how to eval
+	// arguments on their own
 	if builtin {
 		for _, c := range root.Children[1:] {
 			obj := GolspObject{
@@ -409,8 +467,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return fn.BuiltinFunc(scope, argobjects)
 	}
 
-	// Eval function
-
+	// at this point the expression must be a calling a user-defined function
+	// all arguments are evaluated immediately, unlike Haskell's lazy evaluation
 	for _, c := range root.Children[1:] {
 		if c.Spread {
 			spread := SpreadNode(argscope, c)
@@ -423,6 +481,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	patternindex := matchPatterns(fn, argobjects)
 	pattern := fn.FunctionPatterns[patternindex]
 
+	// calling a function with fewer arguments than required evaluates to UNDEFINED
+	// might possibly implement automatic partial evaluation in the future
 	if len(argobjects) < len(pattern) {
 		return Builtins.Identifiers[UNDEFINED]
 	}

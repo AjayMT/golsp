@@ -16,5 +16,5 @@ func main() {
 	tokens := Tokenize(string(input))
 	tree := MakeST(tokens)
 	Eval(Builtins, tree)
-	// fmt.Println(tokens)
+	// fmt.Println(PrintST(tree))
 }
