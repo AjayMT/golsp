@@ -55,7 +55,7 @@ func MakeST(tokens []string) STNode {
 // this function returns a list of nodes within the current expression
 // and a list of remaining unparsed tokens
 func makeST(delim string, tokens []string) ([]STNode, []string) {
-	var nodes []STNode
+	nodes := make([]STNode, 0, len(tokens))
 	i := 0
 
 	for ; i < len(tokens); i++ {
@@ -118,7 +118,7 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 // pruneComments: remove all comment nodes from a syntax tree
 // `root`: root node of the syntax tree
 func pruneComments(root STNode) STNode {
-	var newchildren []STNode
+	newchildren := make([]STNode, 0, len(root.Children))
 	for _, child := range root.Children {
 		if child.Type == STNodeTypeComment { continue }
 		newchildren = append(newchildren, pruneComments(child))

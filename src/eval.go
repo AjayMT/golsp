@@ -102,16 +102,15 @@ func MakeScope(parent *GolspScope) GolspScope {
 // `fn`: the function to copy
 // this function returns a copy of fn
 func copyFunction(fn GolspFunction) GolspFunction {
-	copy := GolspFunction{
+	fncopy := GolspFunction{
 		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
 		FunctionBodies: make([]STNode, len(fn.FunctionBodies)),
 	}
+	copy(fncopy.FunctionPatterns, fn.FunctionPatterns)
+	copy(fncopy.FunctionBodies, fn.FunctionBodies)
+	fncopy.BuiltinFunc = fn.BuiltinFunc
 
-	for i, p := range fn.FunctionPatterns { copy.FunctionPatterns[i] = p }
-	for i, p := range fn.FunctionBodies { copy.FunctionBodies[i] = p }
-	copy.BuiltinFunc = fn.BuiltinFunc
-
-	return copy
+	return fncopy
 }
 
 // copyObject: Copy a GolspObject object
@@ -212,8 +211,11 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if start < 0 { start += listlen }
 	if end < 0 { end += listlen }
 
-	slice := GolspObject{Type: list.Type}
-	slicestr := make([]rune, 0)
+	slice := GolspObject{
+		Type: list.Type,
+		Elements: make([]GolspObject, 0, listlen),
+	}
+	slicestr := make([]rune, 0, listlen)
 	var liststr []rune
 	if list.Type == GolspObjectTypeLiteral {
 		liststr = []rune(list.Value.Head[1:listlen + 1])
@@ -378,11 +380,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// note that list elements are evaluated immediately, unlike quote expressions
 	// in Lisp
 	if root.Type == STNodeTypeList {
-		var elements []GolspObject
+		elements := make([]GolspObject, 0, len(root.Children))
 		for _, c := range root.Children {
 			if c.Spread {
-				spread := SpreadNode(scope, c)
-				for _, elem := range spread { elements = append(elements, elem) }
+				elements = append(elements, SpreadNode(scope, c)...)
 			} else {
 				elements = append(elements, Eval(MakeScope(&scope), c))
 			}
@@ -405,7 +406,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// to exprhead
 	// arguments are evaluated in their own scope (argscope) to prevent side effects
 	var exprhead GolspObject
-	var argobjects []GolspObject
+	argobjects := make([]GolspObject, 0, len(root.Children))
 	argscope := MakeScope(&scope)
 
 	if root.Children[0].Spread {
@@ -437,8 +438,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		exprhead.Value.Type == STNodeTypeStringLiteral {
 		for _, c := range root.Children[1:] {
 			if c.Spread {
-				spread := SpreadNode(argscope, c)
-				for _, obj := range spread { argobjects = append(argobjects, obj) }
+				argobjects = append(argobjects, SpreadNode(argscope, c)...)
 			} else {
 				argobjects = append(argobjects, Eval(argscope, c))
 			}
@@ -471,8 +471,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// all arguments are evaluated immediately, unlike Haskell's lazy evaluation
 	for _, c := range root.Children[1:] {
 		if c.Spread {
-			spread := SpreadNode(argscope, c)
-			for _, obj := range spread { argobjects = append(argobjects, obj) }
+			argobjects = append(argobjects, SpreadNode(argscope, c)...)
 		} else {
 			argobjects = append(argobjects, Eval(argscope, c))
 		}
