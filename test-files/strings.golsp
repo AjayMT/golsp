@@ -3,17 +3,17 @@
 
 [= [merge ord l1 {}] l1]
 [= [merge ord {} l2] l2]
-[= [merge ord { headl taill:: } { headr tailr:: }]
+[= [merge ord { headl taill... } { headr tailr... }]
  [if [ord headr headl]
   { headl
-    [merge ord taill { headr tailr:: }]:: }
+    [merge ord taill { headr tailr... }]... }
   { headr
-    [merge ord { headl taill:: } tailr]:: }
+    [merge ord { headl taill... } tailr]... }
  ]
 ]
 
 [= [len {}] 0]
-[= [len { _ tail:: }] [+ 1 [len tail]]]
+[= [len { _ tail... }] [+ 1 [len tail]]]
 
 [= [mergesort ord {}] {}]
 [= [mergesort ord { x }] { x }]
@@ -27,22 +27,22 @@
 ]
 
 [= [joinstr {}] ""]
-[= [joinstr { head tail:: }] [sprintf "%v%v" head [joinstr tail]]]
+[= [joinstr { head tail... }] [sprintf "%v%v" head [joinstr tail]]]
 
-[printf "%v\n" [joinstr [mergesort > { sentence:: }]]]
+[printf "%v\n" [joinstr [mergesort > { sentence... }]]]
 
 [= [splitlist {} sep] {}]
-[= [splitlist { head tail:: } sep]
+[= [splitlist { head tail... } sep]
  [do
   [= rest [splitlist tail sep]]
   [if [== head sep]
-   { {} rest:: }
-   { { head [rest 0]:: } [rest 1 undefined]:: }
+   { {} rest... }
+   { { head [rest 0]... } [rest 1 undefined]... }
   ]
  ]
 ]
 
 [= [map f {}] {}]
-[= [map f { head tail:: }] { [f head] [map f tail]:: }]
+[= [map f { head tail... }] { [f head] [map f tail]... }]
 
-[printf "%v\n" [map joinstr [splitlist { sentence:: } "-"]]]
+[printf "%v\n" [map joinstr [splitlist { sentence... } "-"]]]

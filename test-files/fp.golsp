@@ -1,6 +1,6 @@
 
 [= [compose {} input] input]
-[= [compose { head tail:: } input]
+[= [compose { head tail... } input]
  [compose
   tail
   [head input]
@@ -12,31 +12,31 @@
 [printf "%v\n" [compose { [lambda [x] [+ x 1]] double double [lambda [x] [+ x 1]] } 4]]
 
 [= [filter f {}] {}]
-[= [filter check { head tail:: }]
+[= [filter check { head tail... }]
  [if [check head]
-  { head [filter check tail]:: }
+  { head [filter check tail]... }
   [filter check tail]
  ]
 ]
 
 [= [map f {}] {}]
-[= [map f { head tail:: }]
- { [f head] [map f tail]:: }]
+[= [map f { head tail... }]
+ { [f head] [map f tail]... }]
 
 [printf "%v\n" [filter [lambda [x] [> x 2]] { 3 4 2 1 4 5 2 6 2 }]]
 [printf "%v\n" [map [lambda [x] [* x x]] { 1 2 3 4 }]]
 
 [= [merge l1 {}] l1]
 [= [merge {} l2] l2]
-[= [merge { headl taill:: } { headr tailr:: }]
+[= [merge { headl taill... } { headr tailr... }]
  [if [< headl headr]
-  { headl [merge taill { headr tailr:: }]:: }
-  { headr [merge { headl taill:: } tailr]:: }
+  { headl [merge taill { headr tailr... }]... }
+  { headr [merge { headl taill... } tailr]... }
  ]
 ]
 
 [= [len {}] 0]
-[= [len { _ tail:: }] [+ 1 [len tail]]]
+[= [len { _ tail... }] [+ 1 [len tail]]]
 
 [= [mergesort {}] {}]
 [= [mergesort { x }] { x }]
