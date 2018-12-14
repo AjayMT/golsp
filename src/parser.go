@@ -49,7 +49,7 @@ func MakeST(tokens []string) STNode {
 	return pruneComments(root)
 }
 
-// makeST: recursively construct a syntax tree from a list of to
+// makeST: recursively construct a syntax tree from a list of tokens
 // `delim`: the leading delimeter of the current expression
 // `tokens`: remaining tokens to parse
 // this function returns a list of nodes within the current expression
