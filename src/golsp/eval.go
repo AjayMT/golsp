@@ -253,6 +253,36 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	return slice
 }
 
+// evalMap: Lookup key(s) in a map
+// `glmap`: the map object
+// `arguments`: the key or keys to look up
+// this function returns the object or list of objects that the key(s) map to
+func evalMap(glmap GolspObject, arguments []GolspObject) GolspObject {
+	if len(arguments) == 0 { return glmap }
+	if len (arguments) == 1 {
+		value, exists := glmap.Map[arguments[0].Value.Head]
+		if arguments[0].Type != GolspObjectTypeLiteral || !exists {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+		return value
+	}
+
+	values := make([]GolspObject, len(arguments))
+	for i, arg := range arguments {
+		value, exists := glmap.Map[arg.Value.Head]
+		if arg.Type != GolspObjectTypeLiteral || !exists {
+			values[i] = Builtins.Identifiers[UNDEFINED]
+		} else {
+			values[i] = value
+		}
+	}
+
+	return GolspObject{
+		Type: GolspObjectTypeList,
+		Elements: values,
+	}
+}
+
 // SpreadNode: Apply the spread operator to a syntax tree node
 // `scope`: the scope within which the node is being spread
 // `node`: the node to spread
@@ -263,11 +293,33 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	if obj.Value.Head == UNDEFINED { return make([]GolspObject, 0) }
 
 	if obj.Type != GolspObjectTypeList &&
+		obj.Type != GolspObjectTypeMap &&
 		obj.Value.Type != STNodeTypeStringLiteral {
 		return []GolspObject{obj}
 	}
 
 	if obj.Type == GolspObjectTypeList { return obj.Elements }
+
+	if obj.Type == GolspObjectTypeMap {
+		objects := make([]GolspObject, 0, len(obj.Map))
+		for k, _ := range obj.Map {
+			node := STNode{
+				Type: STNodeTypeStringLiteral,
+				Head: k,
+			}
+			_, err := strconv.ParseFloat(k, 64)
+			if err == nil {
+				node.Type = STNodeTypeNumberLiteral
+			}
+
+			objects = append(objects, GolspObject{
+				Type: GolspObjectTypeLiteral,
+				Value: node,
+			})
+		}
+
+		return objects
+	}
 
 	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
 	objects := make([]GolspObject, len(str))
@@ -397,13 +449,44 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// 'map' type syntax tree nodes evaluate to maps
 	if root.Type == STNodeTypeMap {
-		// TODO
+		obj := GolspObject{
+			Type: GolspObjectTypeMap,
+			Map: make(map[string]GolspObject),
+		}
+
+		for _, c := range root.Children {
+			if c.Zip == nil { continue }
+			var left []GolspObject
+			var right []GolspObject
+
+			if c.Spread {
+				left = SpreadNode(scope, c)
+			} else {
+				left = []GolspObject{Eval(MakeScope(&scope), c)}
+			}
+			if c.Zip.Spread {
+				right = SpreadNode(scope, *c.Zip)
+			} else {
+				right = []GolspObject{Eval(MakeScope(&scope), *c.Zip)}
+			}
+
+			minlen := int(math.Min(float64(len(left)), float64(len(right))))
+			for index := 0; index < minlen; index++ {
+				if left[index].Type != GolspObjectTypeLiteral {
+					continue
+				}
+
+				obj.Map[left[index].Value.Head] = right[index]
+			}
+		}
+
+		return obj
 	}
+
+	// at this point the root node must be an expression
 
 	// empty expressions evaluate to UNDEFINED
 	if len(root.Children) == 0 { return Builtins.Identifiers[UNDEFINED] }
-
-	// at this point the root node must be an expression
 
 	// exprhead is the head of the expression, aka the function
 	// that is being called, list that is being sliced, etc...
@@ -439,7 +522,9 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	// if exprhead is a list or string literal, slice it
+	// if it is a map, lookup key
 	if exprhead.Type == GolspObjectTypeList ||
+		exprhead.Type == GolspObjectTypeMap ||
 		exprhead.Value.Type == STNodeTypeStringLiteral {
 		for _, c := range root.Children[1:] {
 			if c.Spread {
@@ -447,6 +532,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			} else {
 				argobjects = append(argobjects, Eval(argscope, c))
 			}
+		}
+
+		if exprhead.Type == GolspObjectTypeMap {
+			return evalMap(exprhead, argobjects)
 		}
 
 		return evalSlice(exprhead, argobjects)

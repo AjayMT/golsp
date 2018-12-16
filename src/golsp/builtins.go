@@ -319,6 +319,15 @@ func formatStr(text string, objects []GolspObject) string {
 			continue
 		}
 
+		if v.Type == GolspObjectTypeMap {
+			strs := make([]string, 0, len(v.Map))
+			for key, value := range v.Map {
+				strs = append(strs, fmt.Sprintf("%v: %v", key, formatStr("%v", []GolspObject{value})))
+			}
+			args[i] = fmt.Sprintf("map(%v)", strings.Join(strs, ", "))
+			continue
+		}
+
 		if v.Value.Type == STNodeTypeNumberLiteral {
 			n, _ := strconv.ParseFloat(v.Value.Head, 64)
 			args[i] = n
