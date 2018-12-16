@@ -4,7 +4,7 @@
 package golsp
 
 // STNode: A single syntax tree node that has a 'head' (i.e value), type,
-// list of child nodes and operator flags for the two postfix operators
+// list of child nodes and flags/fields for the two operators
 
 type STNodeType int
 const (
@@ -23,7 +23,7 @@ type STNode struct {
 	Type STNodeType
 	Children []STNode
 	Spread bool
-	Zip bool
+	Zip *STNode
 }
 
 // /STNode

@@ -1,6 +1,6 @@
 
 golsp: src/**/*.go src/*.go
-	go build -o golsp src/cli.go
+	go build -o golsp src/*.go
 
 .PHONY: clean
 clean:

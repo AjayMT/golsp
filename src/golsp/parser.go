@@ -105,8 +105,18 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 			switch optype {
 			case OperatorTypeSpread:
 				nodes[len(nodes) - 1].Spread = true
+
 			case OperatorTypeZip:
-				nodes[len(nodes) - 1].Zip = true
+				// zip operators have to be parsed recursively
+				// this is a very awkward solution since I cannot actually parse
+				// infix operators properly -- ideally the operator would be a
+				// node with a left and right child
+				nextnodes, nexttokens := makeST(delim, tokens[i + 1:])
+				if len(nextnodes) > 0 {
+					nodes[len(nodes) - 1].Zip = &nextnodes[0]
+					nodes = append(nodes, nextnodes[1:]...)
+					return nodes, nexttokens
+				}
 			}
 			continue
 		}
