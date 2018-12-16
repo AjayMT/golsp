@@ -73,6 +73,7 @@ type GolspObject struct {
 	Value STNode
 	Elements []GolspObject
 	Map map[string]GolspObject
+	MapKeys []GolspObject
 }
 
 // /GolspObject

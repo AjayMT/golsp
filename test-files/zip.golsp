@@ -35,8 +35,6 @@
 [printf "nestedmap values: %v\n" [nestedmap nestedmap...]]
 [printf "nestedmap.baz.llvm[1:undefined]: %v\n" [[[nestedmap "baz"] "llvm"] 1 undefined]]
 
-# this still does not work since spread/iteration order of maps is not the
-# same as insertion order
 [= zipmap2 (
     zipmap... : [zipmap zipmap...]...
     7: "g"

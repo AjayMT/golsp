@@ -299,27 +299,7 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 	}
 
 	if obj.Type == GolspObjectTypeList { return obj.Elements }
-
-	if obj.Type == GolspObjectTypeMap {
-		objects := make([]GolspObject, 0, len(obj.Map))
-		for k, _ := range obj.Map {
-			node := STNode{
-				Type: STNodeTypeStringLiteral,
-				Head: k,
-			}
-			_, err := strconv.ParseFloat(k, 64)
-			if err == nil {
-				node.Type = STNodeTypeNumberLiteral
-			}
-
-			objects = append(objects, GolspObject{
-				Type: GolspObjectTypeLiteral,
-				Value: node,
-			})
-		}
-
-		return objects
-	}
+	if obj.Type == GolspObjectTypeMap { return obj.MapKeys }
 
 	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
 	objects := make([]GolspObject, len(str))
@@ -452,6 +432,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		obj := GolspObject{
 			Type: GolspObjectTypeMap,
 			Map: make(map[string]GolspObject),
+			MapKeys: make([]GolspObject, 0, len(root.Children)),
 		}
 
 		for _, c := range root.Children {
@@ -476,7 +457,11 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 					continue
 				}
 
+				_, exists := obj.Map[left[index].Value.Head]
 				obj.Map[left[index].Value.Head] = right[index]
+				if !exists {
+					obj.MapKeys = append(obj.MapKeys, left[index])
+				}
 			}
 		}
 

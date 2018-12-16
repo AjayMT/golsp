@@ -2,8 +2,8 @@
 # golsp
 Interpreted lisp-like programming language.
 
-#### roadmap
-- map builtin
+### roadmap
+- strong static types
 - module system
 - stdlib
 - documentation
