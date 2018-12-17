@@ -320,9 +320,11 @@ func formatStr(text string, objects []GolspObject) string {
 		}
 
 		if v.Type == GolspObjectTypeMap {
-			strs := make([]string, 0, len(v.Map))
-			for key, value := range v.Map {
-				strs = append(strs, fmt.Sprintf("%v: %v", key, formatStr("%v", []GolspObject{value})))
+			strs := make([]string, 0, len(v.MapKeys))
+			for _, key := range v.MapKeys {
+				str := fmt.Sprintf("%v: %v", key.Value.Head,
+					formatStr("%v", []GolspObject{v.Map[key.Value.Head]}))
+				strs = append(strs, str)
 			}
 			args[i] = fmt.Sprintf("map(%v)", strings.Join(strs, ", "))
 			continue

@@ -123,19 +123,18 @@ func copyObject(object GolspObject) GolspObject {
 		Value: object.Value,
 		Function: copyFunction(object.Function),
 		Elements: make([]GolspObject, len(object.Elements)),
+		MapKeys: make([]GolspObject, len(object.MapKeys)),
+		Map: make(map[string]GolspObject),
 		Scope: GolspScope{
 			Parent: object.Scope.Parent,
 			Identifiers: make(map[string]GolspObject),
 		},
 	}
 
-	for k, o := range object.Scope.Identifiers {
-		newobject.Scope.Identifiers[k] = copyObject(o)
-	}
-
-	for i, e := range object.Elements {
-		newobject.Elements[i] = copyObject(e)
-	}
+	for k, o := range object.Scope.Identifiers { newobject.Scope.Identifiers[k] = copyObject(o) }
+	for i, e := range object.Elements { newobject.Elements[i] = copyObject(e) }
+	for i, k := range object.MapKeys { newobject.MapKeys[i] = copyObject(k) }
+	for k, v := range object.Map { newobject.Map[k] = copyObject(v) }
 
 	return newobject
 }
