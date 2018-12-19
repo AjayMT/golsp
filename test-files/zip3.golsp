@@ -1,0 +1,10 @@
+
+[= [myfunc ( "hello" : hello keys... )]
+ [sprintf "hello: %v %v %v" hello hello keys]
+]
+
+[= [myfunc ( keys... )] [sprintf "keys: %v\n" keys]]
+
+[printf "%v\n" [myfunc ( "a": 1 "b": 2 "hello": 3 )]]
+[printf "%v\n" [myfunc ( "hello": "world" 1: 4 5: 7 )]]
+[printf "%v\n" [myfunc ( "a": 1 "b": 2 "c": "d" )]]

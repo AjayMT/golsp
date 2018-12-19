@@ -69,6 +69,18 @@ func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
 				return false
 			}
 		}
+		if node1.Type == STNodeTypeMap {
+			if !comparePatterns(node1.Children, node2.Children) {
+				return false
+			}
+
+			zip1 := make([]STNode, len(node1.Children))
+			zip2 := make([]STNode, len(node2.Children))
+			for j, z := range node1.Children { zip1[j] = *z.Zip }
+			for j, z := range node2.Children { zip2[j] = *z.Zip }
+
+			if !comparePatterns(zip1, zip2) { return false }
+		}
 	}
 
 	return true

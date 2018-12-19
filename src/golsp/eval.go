@@ -23,6 +23,28 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 		return arg.Value.Head == pattern.Head
 	}
 
+	// map patterns match if all the specified keys and values match
+	// value-only matching i.e `[foo ( quux: "hello" )]` does not work yet
+	if pattern.Type == STNodeTypeMap {
+		if arg.Type != GolspObjectTypeMap { return false }
+
+		for i, c := range pattern.Children {
+			if c.Spread && c.Type == STNodeTypeIdentifier {
+				return len(arg.MapKeys) >= i
+			}
+			if len(arg.MapKeys) <= i { return false }
+			if c.Type == STNodeTypeStringLiteral || c.Type == STNodeTypeNumberLiteral {
+				value, exists := arg.Map[c.Head]
+				if !exists { return false }
+				if c.Zip != nil {
+					if !comparePatternNode(*c.Zip, value) { return false }
+				}
+			}
+		}
+
+		if len(arg.MapKeys) > len(pattern.Children) { return false }
+	}
+
 	// list patterns match if each of their elements match and the lists
 	// are of the same length, after accounting for spreading
 	if pattern.Type == STNodeTypeList {
@@ -325,7 +347,7 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 // identifiers
 func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObject) {
 	for i, symbol := range pattern {
-		if !(symbol.Type == STNodeTypeIdentifier || symbol.Type == STNodeTypeList) {
+		if symbol.Type == STNodeTypeStringLiteral || symbol.Type == STNodeTypeNumberLiteral {
 			continue
 		}
 
@@ -338,31 +360,51 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 				break
 			}
 			exprhead.Scope.Identifiers[symbol.Head] = argobjects[i]
+			continue
 		}
 
-		if argobjects[i].Type != GolspObjectTypeList { continue }
+		if argobjects[i].Type == GolspObjectTypeList && symbol.Type == STNodeTypeList {
+			bindArguments(exprhead, symbol.Children, argobjects[i].Elements)
+		}
 
-		list := argobjects[i].Elements
-		for j, child := range symbol.Children {
-			if !(child.Type == STNodeTypeIdentifier || child.Type == STNodeTypeList) {
-				continue
-			}
+		if argobjects[i].Type == GolspObjectTypeMap && symbol.Type == STNodeTypeMap {
+			// this is a giant mess. clean it up
 
-			if j > len(list) { break }
+			mapped := make(map[string]bool)
+			for _, child := range symbol.Children {
+				if child.Type == STNodeTypeNumberLiteral ||
+					child.Type == STNodeTypeStringLiteral {
+					if child.Zip == nil { continue }
 
-			if child.Type == STNodeTypeList {
-				bindArguments(exprhead, child.Children, list[j].Elements)
-			}
+					value, exists := argobjects[i].Map[child.Head]
+					if !exists { continue }
 
-			if child.Spread {
+					bindArguments(exprhead, []STNode{*child.Zip}, []GolspObject{value})
+					mapped[child.Head] = true
+					continue
+				}
+
+				if child.Type != STNodeTypeIdentifier { continue }
+
+				if !child.Spread {
+					for _, key := range argobjects[i].MapKeys {
+						if mapped[key.Value.Head] { continue }
+						exprhead.Scope.Identifiers[child.Head] = key
+						break
+					}
+					continue
+				}
+
+				keys := make([]GolspObject, 0, len(argobjects[i].MapKeys))
+				for _, key := range argobjects[i].MapKeys {
+					if !mapped[key.Value.Head] { keys = append(keys, key) }
+				}
+
 				exprhead.Scope.Identifiers[child.Head] = GolspObject{
 					Type: GolspObjectTypeList,
-					Elements: list[j:],
+					Elements: keys,
 				}
-				break
 			}
-
-			exprhead.Scope.Identifiers[child.Head] = list[j]
 		}
 	}
 }
