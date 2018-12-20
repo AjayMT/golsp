@@ -425,7 +425,11 @@ func GolspBuiltinDo(scope GolspScope, arguments []GolspObject) GolspObject {
 // a series of statements within an enclosed, isolated scope
 // this function returns UNDEFINED
 func GolspBuiltinGo(scope GolspScope, arguments []GolspObject) GolspObject {
-	go GolspBuiltinDo(scope, arguments)
+	WaitGroup.Add(1)
+	go func () {
+		defer WaitGroup.Done()
+		GolspBuiltinDo(scope, arguments)
+	}()
 
 	return Builtins.Identifiers[UNDEFINED]
 }

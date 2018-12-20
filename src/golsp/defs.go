@@ -3,6 +3,8 @@
 
 package golsp
 
+import "sync"
+
 // STNode: A single syntax tree node that has a 'head' (i.e value), type,
 // list of child nodes and flags/fields for the two operators
 
@@ -80,3 +82,6 @@ type GolspObject struct {
 
 // UNDEFINED: The name and value of the special 'undefined' identifier
 const UNDEFINED = "undefined"
+
+// WaitGroup: The global wait group for all goroutines
+var WaitGroup sync.WaitGroup
