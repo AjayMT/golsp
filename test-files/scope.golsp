@@ -1,18 +1,22 @@
 
-[= n 2]
+[= x 2]
+[= [func] [printf "x: %v\n" x]]
 
-[=
- [a x]
+[= [closure a]
  [lambda []
-  [+ x 1]]]
+  [+ x a]
+ ]
+]
 
-[= [c] [+ n 1]]
+[go
+ [= x 4]
+ [sleep 1000]
+ [func]
+ [printf "closure: %v\n" [[closure 1]]]
+]
 
-[[= [f x] [+ x 3]] 7]
-
-[printf "%v\n" a]
-[printf "%v\n" c]
-[printf "%v\n" [c]]
-[printf "%v %v %v\n" [a 2] [[a 1]] [[a 3]]]
-[printf "%v\n" b]
-[printf "%v\n" f]
+[func]
+[printf "closure: %v\n" [[closure 1]]]
+[= x 3]
+[func]
+[printf "closure: %v\n" [[closure 1]]]

@@ -165,19 +165,20 @@ func copyObject(object GolspObject) GolspObject {
 // scopes into the scope object, effectively orphaning it and flattening its
 // inheritance tree
 // `scope`: the scope to isolate
-// this function returns the isolated scope's map of identifiers to objects
-func IsolateScope(scope GolspScope) map[string]GolspObject {
-	identifiers := make(map[string]GolspObject)
-
+// this function returns the isolated scope
+func IsolateScope(scope GolspScope) GolspScope {
+	newscope := GolspScope{Identifiers: make(map[string]GolspObject)}
 	if scope.Parent != nil {
-		identifiers = IsolateScope(*(scope.Parent))
+		parent := IsolateScope(*(scope.Parent))
+		newscope.Parent = &parent
 	}
-
 	for k, o := range scope.Identifiers {
-		identifiers[k] = copyObject(o)
+		obj := copyObject(o)
+		obj.Scope.Parent = &newscope
+		newscope.Identifiers[k] = obj
 	}
 
-	return identifiers
+	return newscope
 }
 
 // evalSlice: Evaluate a slice expression, i.e `[list begin end step]`
@@ -420,9 +421,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// scope nodes are isolated from their parents to ensure that they do not
 	// cause side-effects, especially important for 'go' blocks
 	if root.Type == STNodeTypeScope {
-		newscope := GolspScope{
-			Identifiers: IsolateScope(scope),
-		}
+		newscope := IsolateScope(scope)
 
 		var result GolspObject
 		for _, child := range root.Children {
