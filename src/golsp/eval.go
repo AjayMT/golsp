@@ -371,40 +371,41 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 			// this is a giant mess. clean it up
 
 			mapped := make(map[string]bool)
-			for _, child := range symbol.Children {
-				if child.Type == STNodeTypeNumberLiteral ||
-					child.Type == STNodeTypeStringLiteral {
-					if child.Zip == nil { continue }
-
-					value, exists := argobjects[i].Map[child.Head]
-					if !exists { continue }
-
-					bindArguments(exprhead, []STNode{*child.Zip}, []GolspObject{value})
-					mapped[child.Head] = true
-					continue
+			mappatternindex := 0
+			for iterindex, child := range symbol.Children {
+				mappatternindex = iterindex
+				if !(child.Type == STNodeTypeNumberLiteral ||
+					child.Type == STNodeTypeStringLiteral) {
+					break
 				}
 
-				if child.Type != STNodeTypeIdentifier { continue }
+				if child.Zip == nil { continue }
 
-				if !child.Spread {
-					for _, key := range argobjects[i].MapKeys {
-						if mapped[key.Value.Head] { continue }
-						exprhead.Scope.Identifiers[child.Head] = key
-						break
-					}
-					continue
-				}
+				value, exists := argobjects[i].Map[child.Head]
+				if !exists { continue }
 
-				keys := make([]GolspObject, 0, len(argobjects[i].MapKeys))
-				for _, key := range argobjects[i].MapKeys {
-					if !mapped[key.Value.Head] { keys = append(keys, key) }
-				}
+				bindArguments(exprhead, []STNode{*child.Zip}, []GolspObject{value})
+				mapped[child.Head] = true
+			}
 
-				exprhead.Scope.Identifiers[child.Head] = GolspObject{
-					Type: GolspObjectTypeList,
-					Elements: keys,
+			keys := make([]GolspObject, 0, len(argobjects[i].MapKeys))
+			values := make([]GolspObject, 0, len(argobjects[i].MapKeys))
+			for _, key := range argobjects[i].MapKeys {
+				if !mapped[key.Value.Head] {
+					keys = append(keys, key)
+					values = append(values, argobjects[i].Map[key.Value.Head])
 				}
 			}
+
+			patternkeys := symbol.Children[mappatternindex:]
+			patternvalues := make([]STNode, 0, len(patternkeys))
+			for _, c := range patternkeys {
+				if c.Zip == nil { continue }
+				patternvalues = append(patternvalues, *c.Zip)
+			}
+
+			bindArguments(exprhead, patternkeys, keys)
+			bindArguments(exprhead, patternvalues, values)
 		}
 	}
 }

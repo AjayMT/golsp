@@ -8,3 +8,16 @@
 [printf "%v\n" [myfunc ( "a": 1 "b": 2 "hello": 3 )]]
 [printf "%v\n" [myfunc ( "hello": "world" 1: 4 5: 7 )]]
 [printf "%v\n" [myfunc ( "a": 1 "b": 2 "c": "d" )]]
+
+[= [values ( keys... )]]
+
+[= [f2 ( "chuchu" : chuchuval keys... : values... )]
+ [printf "chuchu: %v keys: %v values: %v\n" chuchuval keys values]
+]
+
+[= [f2 ( keys... : values... )]
+ [printf "keys: %v values: %v\n" keys values]
+]
+
+[f2 ( "chuchu": 1 "xyz": 2 "geoff": 3 )]
+[f2 ( "maxk3": 1 "xyz": 2 "geoff": 3 )]
