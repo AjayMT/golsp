@@ -610,3 +610,15 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	return Eval(exprhead.Scope, fn.FunctionBodies[patternindex])
 }
+
+// Run: Run a Golsp program
+// `program`: the program to run
+// `dirname`: the directory of the program file
+// this function returns the result of running the program
+func Run(dirname string, program string) GolspObject {
+	InitializeBuiltins(dirname)
+	result := Eval(Builtins, MakeST(Tokenize(program)))
+	defer WaitGroup.Wait()
+
+	return result
+}

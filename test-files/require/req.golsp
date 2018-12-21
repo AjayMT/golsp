@@ -1,0 +1,5 @@
+
+[printf "dirname: %v\n" __dirname__]
+[printf "%v\n" [require "./module/module.golsp"]]
+[printf "%v\n" [require "./module/mod2/file.golsp"]]
+[printf "dirname: %v\n" __dirname__]

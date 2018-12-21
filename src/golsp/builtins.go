@@ -8,21 +8,40 @@ import (
 	"strings"
 	"strconv"
 	"time"
+	"sync"
+	"path/filepath"
+	"io/ioutil"
+	"os"
 )
 
 var Builtins = GolspScope{}
+var WaitGroup sync.WaitGroup
 
 // InitializeBuiltins: Initialize the default builtin scope ('Builtins')
 // with builtin identifiers
-func InitializeBuiltins() {
+func InitializeBuiltins(dirname string) {
 	Builtins.Identifiers = map[string]GolspObject{
 		UNDEFINED: GolspObject{
 			Type: GolspObjectTypeLiteral,
 			Value: GolspUndefinedIdentifier(),
 		},
+		DIRNAME: GolspObject{
+			Type: GolspObjectTypeLiteral,
+			Value: STNode{
+				Head: fmt.Sprintf("\"%v\"", dirname),
+				Type: STNodeTypeStringLiteral,
+			},
+		},
 
 		"=": GolspBuiltinFunctionObject(GolspBuiltinEquals),
 		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
+		"require": GolspBuiltinFunctionObject(GolspBuiltinRequire),
+		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
+		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
+		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
+		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
+		"sprintf": GolspBuiltinFunctionObject(GolspBuiltinSprintf),
+		"printf": GolspBuiltinFunctionObject(GolspBuiltinPrintf),
 
 		"+": GolspBuiltinMathFunction("+"),
 		"-": GolspBuiltinMathFunction("-"),
@@ -36,13 +55,6 @@ func InitializeBuiltins() {
 		"<": GolspBuiltinComparisonFunction("<"),
 		">=": GolspBuiltinComparisonFunction(">="),
 		"<=": GolspBuiltinComparisonFunction("<="),
-
-		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
-		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
-		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
-		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
-		"sprintf": GolspBuiltinFunctionObject(GolspBuiltinSprintf),
-		"printf": GolspBuiltinFunctionObject(GolspBuiltinPrintf),
 	}
 }
 
@@ -230,6 +242,30 @@ func GolspBuiltinLambda(scope GolspScope, arguments []GolspObject) GolspObject {
 		Type: GolspObjectTypeFunction,
 		Function: fn,
 	}
+}
+
+// GolspBuiltinRequire: The builtin 'require' function. This function evaluates a
+// Golsp file and returns the GolspObject that the file exports.
+func GolspBuiltinRequire(scope GolspScope, args []GolspObject) GolspObject {
+	arguments := evalArgs(scope, args)
+
+	if len(arguments) < 1 {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+	if arguments[0].Value.Type != STNodeTypeStringLiteral {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	dirname := LookupIdentifier(scope, DIRNAME)
+	rawpath := arguments[0].Value.Head[1:len(arguments[0].Value.Head) - 1]
+	resolvedpath := filepath.Join(dirname.Value.Head[1:len(dirname.Value.Head) - 1], rawpath)
+
+	file, err := os.Open(resolvedpath)
+	if err != nil { return Builtins.Identifiers[UNDEFINED] }
+	data, err := ioutil.ReadAll(file)
+	if err != nil { return Builtins.Identifiers[UNDEFINED] }
+
+	return Run(filepath.Dir(resolvedpath), string(data))
 }
 
 // GolspBuiltinMathFunction: Produce a Golsp builtin function for a given math operator

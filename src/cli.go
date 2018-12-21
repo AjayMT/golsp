@@ -6,15 +6,12 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"github.com/ajaymt/golsp/src/golsp"
 )
 
 func main() {
 	input, _ := ioutil.ReadAll(os.Stdin)
-
-	golsp.InitializeBuiltins()
-	tokens := golsp.Tokenize(string(input))
-	tree := golsp.MakeST(tokens)
-	golsp.Eval(golsp.Builtins, tree)
-	golsp.WaitGroup.Wait()
+	dirname, _ := filepath.Abs(".")
+	golsp.Run(dirname, string(input))
 }
