@@ -614,9 +614,11 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 // Run: Run a Golsp program
 // `program`: the program to run
 // `dirname`: the directory of the program file
+// `filename`: the name of the program file
+// `args`: command line arguments passed to the program
 // this function returns the result of running the program
-func Run(dirname string, program string) GolspObject {
-	InitializeBuiltins(dirname)
+func Run(dirname string, filename string, args []string, program string) GolspObject {
+	InitializeBuiltins(dirname, filename, args)
 	result := Eval(Builtins, MakeST(Tokenize(program)))
 	defer WaitGroup.Wait()
 

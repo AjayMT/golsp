@@ -78,8 +78,8 @@ type GolspObject struct {
 
 // /GolspObject
 
-// UNDEFINED: The name and value of the special 'undefined' identifier
+// names of special builtin identifiers
 const UNDEFINED = "undefined"
-
-// DIRNAME: The name of the special '__dirname__' identifier
 const DIRNAME = "__dirname__"
+const FILENAME = "__filename__"
+const ARGS = "__args__"

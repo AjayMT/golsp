@@ -17,9 +17,31 @@ import (
 var Builtins = GolspScope{}
 var WaitGroup sync.WaitGroup
 
+// sliceToGolspList: convert a slice of strings into a Golsp list of strings,
+// used to expose command-line arguments to Golsp programs
+// `slice`: the slice of strings
+// this function returns the produced GolspObject
+func sliceToGolspList(slice []string) GolspObject {
+	object := GolspObject{
+		Type: GolspObjectTypeList,
+		Elements: make([]GolspObject, len(slice)),
+	}
+	for i, str := range slice {
+		object.Elements[i] = GolspObject{
+			Type: GolspObjectTypeLiteral,
+			Value: STNode{
+				Type: STNodeTypeStringLiteral,
+				Head: fmt.Sprintf("\"%v\"", str),
+			},
+		}
+	}
+
+	return object
+}
+
 // InitializeBuiltins: Initialize the default builtin scope ('Builtins')
 // with builtin identifiers
-func InitializeBuiltins(dirname string) {
+func InitializeBuiltins(dirname string, filename string, args []string) {
 	Builtins.Identifiers = map[string]GolspObject{
 		UNDEFINED: GolspObject{
 			Type: GolspObjectTypeLiteral,
@@ -32,6 +54,14 @@ func InitializeBuiltins(dirname string) {
 				Type: STNodeTypeStringLiteral,
 			},
 		},
+		FILENAME: GolspObject{
+			Type: GolspObjectTypeLiteral,
+			Value: STNode{
+				Head: fmt.Sprintf("\"%v\"", filename),
+				Type: STNodeTypeStringLiteral,
+			},
+		},
+		ARGS: sliceToGolspList(args),
 
 		"=": GolspBuiltinFunctionObject(GolspBuiltinEquals),
 		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
@@ -265,7 +295,7 @@ func GolspBuiltinRequire(scope GolspScope, args []GolspObject) GolspObject {
 	data, err := ioutil.ReadAll(file)
 	if err != nil { return Builtins.Identifiers[UNDEFINED] }
 
-	return Run(filepath.Dir(resolvedpath), string(data))
+	return Run(filepath.Dir(resolvedpath), resolvedpath, []string{}, string(data))
 }
 
 // GolspBuiltinMathFunction: Produce a Golsp builtin function for a given math operator
