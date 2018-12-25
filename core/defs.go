@@ -3,6 +3,11 @@
 
 package golsp
 
+import (
+	"fmt"
+	"strconv"
+)
+
 // STNode: A single syntax tree node that has a 'head' (i.e value), type,
 // list of child nodes and flags/fields for the two operators
 
@@ -77,6 +82,66 @@ type GolspObject struct {
 }
 
 // /GolspObject
+
+// GolspObject constructors
+
+// GolspBuiltinFunctionObject: Produce a Golsp function object from a
+// GolspBuiltinFunction-type function
+// `fn`: the builtin function
+// this function returns the GolspObject containing the builtin function
+func GolspBuiltinFunctionObject(fn GolspBuiltinFunction) GolspObject {
+	return GolspObject{
+		Type: GolspObjectTypeFunction,
+		Function: GolspFunction{BuiltinFunc: fn},
+	}
+}
+
+// GolspUndefinedObject: Produce the UNDEFINED identifier object.
+// Used because structs and other data structures are mutable by default and cannot
+// be stored in consts
+// this function returns the UNDEFINED GolspObject
+func GolspUndefinedObject() GolspObject {
+	return GolspObject{
+		Type: GolspObjectTypeLiteral,
+		Value: STNode{
+			Head: UNDEFINED,
+			Type: STNodeTypeIdentifier,
+		},
+	}
+}
+
+// GolspStringObject: Produce a Golsp string object from a string
+// `str`: the string
+// this function returns the produced GolspObject
+func GolspStringObject(str string) GolspObject {
+	return GolspObject{
+		Type: GolspObjectTypeLiteral,
+		Value: STNode{
+			Head: fmt.Sprintf("\"%v\"", str),
+			Type: STNodeTypeStringLiteral,
+		},
+	}
+}
+
+// GolspNumberObject: Produce a Golsp number object from a number
+// `num`: the number
+// this function returns the produced GolspObject
+func GolspNumberObject(num float64) GolspObject {
+	var head string
+	if float64(int(num)) == num {
+		head = strconv.Itoa(int(num))
+	} else { head = fmt.Sprintf("%v", num) }
+
+	return GolspObject{
+		Type: GolspObjectTypeLiteral,
+		Value: STNode{
+			Head: head,
+			Type: STNodeTypeNumberLiteral,
+		},
+	}
+}
+
+// /GolspObject constructors
 
 // names of special builtin identifiers
 const UNDEFINED = "undefined"

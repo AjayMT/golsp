@@ -1,0 +1,4 @@
+
+[= types [require "stdlib/types/types.so"]]
+
+[printf "%v %v\n" [[types "isString"] "hello"] [[types "isString"] 2.0]]

@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"github.com/ajaymt/golsp/src/golsp"
+	golsp "github.com/ajaymt/golsp/core"
 )
 
 func main() {

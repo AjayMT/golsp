@@ -6,13 +6,13 @@ package main
 import (
 	"strconv"
 	"strings"
-	"github.com/ajaymt/golsp/src/golsp"
+	. "github.com/ajaymt/golsp/core"
 )
 
-func PrintElements(list golsp.GolspObject) string {
+func PrintElements(list GolspObject) string {
 	str := ""
 	for _, elem := range list.Elements {
-		if elem.Type == golsp.GolspObjectTypeList {
+		if elem.Type == GolspObjectTypeList {
 			str += "{ " + PrintElements(elem) + " }"
 		}
 
@@ -22,7 +22,7 @@ func PrintElements(list golsp.GolspObject) string {
 	return str
 }
 
-func PrintST(root golsp.STNode) string {
+func PrintST(root STNode) string {
 	str := ""
 
 	str += "\nHead: \"" + root.Head +
