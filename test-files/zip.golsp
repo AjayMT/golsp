@@ -1,0 +1,43 @@
+
+[= mymap (
+    "a": 1
+    "b": 2
+    "c": 3
+    4: "d"
+)]
+
+[printf "%v\n" mymap]
+
+[= keys { 5 6 7 8 }]
+[= values "abc"]
+[= zipmap (
+    keys... : values...
+    8: "f"
+)]
+
+[printf "%v\n" zipmap]
+
+[printf "\n[zipmap 7]: %v\n" [zipmap 7]]
+[printf "[mymap \"b\"]: %v\n" [mymap "b"]]
+[printf "[zipmap 9]: %v\n" [zipmap 9]]
+[printf "zipmap keys: %v\n" { zipmap... }]
+[printf "zipmap values: %v\n" [zipmap zipmap...]]
+
+[= nestedmap (
+    "foo": "bar"
+    "quux": 1
+    "baz": (
+	"llvm": {"clang" "lldb" "darwin"}
+    )
+)]
+
+[printf "\nnestedmap: %v\n" nestedmap]
+[printf "nestedmap values: %v\n" [nestedmap nestedmap...]]
+[printf "nestedmap.baz.llvm[1:undefined]: %v\n" [[[nestedmap "baz"] "llvm"] 1 undefined]]
+
+[= zipmap2 (
+    zipmap... : [zipmap zipmap...]...
+    7: "g"
+)]
+
+[printf "\nzipmap2: %v\n" zipmap2]

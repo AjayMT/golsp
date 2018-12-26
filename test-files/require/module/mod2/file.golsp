@@ -1,0 +1,4 @@
+
+[printf "dirname: %v filename: %v args: %v\n" __dirname__ __filename__ __args__]
+[sleep 1000]
+{1 2 3 4}

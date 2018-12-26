@@ -6,6 +6,7 @@ package main
 import (
 	"strconv"
 	"strings"
+	. "github.com/ajaymt/golsp/core"
 )
 
 func PrintElements(list GolspObject) string {
@@ -26,21 +27,32 @@ func PrintST(root STNode) string {
 
 	str += "\nHead: \"" + root.Head +
 		"\"\nType: " + strconv.Itoa(int(root.Type)) +
-		"\nSpread: " + strconv.FormatBool(root.Spread) +
-		"\nZip: " + strconv.FormatBool(root.Zip) +
-		"\nChildren: ("
+		"\nSpread: " + strconv.FormatBool(root.Spread)
 
-	for _, child := range root.Children {
-		childstr := PrintST(child)
+	if len(root.Children) > 0 {
+		str += "\nChildren: ("
+		for _, child := range root.Children {
+			childstr := PrintST(child)
+			lines := strings.Split(childstr, "\n")
+			for i := 0; i < len(lines); i++ {
+				lines[i] = "  " + lines[i]
+			}
+
+			str += strings.Join(lines, "\n")
+		}
+		str += "\n),"
+	}
+
+	if root.Zip != nil {
+		str += "\nZip: ("
+		childstr := PrintST(*root.Zip)
 		lines := strings.Split(childstr, "\n")
 		for i := 0; i < len(lines); i++ {
 			lines[i] = "  " + lines[i]
 		}
-
 		str += strings.Join(lines, "\n")
+		str += "\n),"
 	}
-
-	str += "\n),"
 
 	return str
 }

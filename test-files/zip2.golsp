@@ -1,0 +1,23 @@
+
+[= map (
+    "hello" : "world"
+    "test" : 1
+    "a" : "b"
+    4 : "1"
+    6 : 8
+)]
+
+[= [func]
+ [go
+  [sleep 500]
+  [= map (
+      map... : [map map...]...
+      4 : 17
+  )]
+  [printf "%v\n" map]
+ ]
+]
+
+[func]
+[sleep 1000]
+[printf "%v\n" map]

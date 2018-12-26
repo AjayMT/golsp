@@ -1,28 +1,57 @@
 
 // Builtins
 
-package main
+package golsp
 
 import (
 	"fmt"
 	"strings"
 	"strconv"
 	"time"
+	"sync"
+	"path/filepath"
+	"io/ioutil"
+	"os"
+	"plugin"
 )
 
 var Builtins = GolspScope{}
+var WaitGroup sync.WaitGroup
+
+// sliceToGolspList: convert a slice of strings into a Golsp list of strings,
+// used to expose command-line arguments to Golsp programs
+// `slice`: the slice of strings
+// this function returns the produced GolspObject
+func sliceToGolspList(slice []string) GolspObject {
+	object := GolspObject{
+		Type: GolspObjectTypeList,
+		Elements: make([]GolspObject, len(slice)),
+	}
+	for i, str := range slice {
+		object.Elements[i] = GolspStringObject(str)
+	}
+
+	return object
+}
 
 // InitializeBuiltins: Initialize the default builtin scope ('Builtins')
 // with builtin identifiers
-func InitializeBuiltins() {
+func InitializeBuiltins(dirname string, filename string, args []string) {
 	Builtins.Identifiers = map[string]GolspObject{
-		UNDEFINED: GolspObject{
-			Type: GolspObjectTypeLiteral,
-			Value: GolspUndefinedIdentifier(),
-		},
+		UNDEFINED: GolspUndefinedObject(),
+		DIRNAME: GolspStringObject(dirname),
+		FILENAME: GolspStringObject(filename),
+		ARGS: sliceToGolspList(args),
 
 		"=": GolspBuiltinFunctionObject(GolspBuiltinEquals),
 		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
+		"require": GolspBuiltinFunctionObject(GolspBuiltinRequire),
+		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
+		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
+		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
+		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
+		"sprintf": GolspBuiltinFunctionObject(GolspBuiltinSprintf),
+		"printf": GolspBuiltinFunctionObject(GolspBuiltinPrintf),
 
 		"+": GolspBuiltinMathFunction("+"),
 		"-": GolspBuiltinMathFunction("-"),
@@ -36,13 +65,6 @@ func InitializeBuiltins() {
 		"<": GolspBuiltinComparisonFunction("<"),
 		">=": GolspBuiltinComparisonFunction(">="),
 		"<=": GolspBuiltinComparisonFunction("<="),
-
-		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
-		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
-		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
-		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
-		"sprintf": GolspBuiltinFunctionObject(GolspBuiltinSprintf),
-		"printf": GolspBuiltinFunctionObject(GolspBuiltinPrintf),
 	}
 }
 
@@ -53,9 +75,9 @@ func InitializeBuiltins() {
 // `pattern2`: the second pattern
 // this function returns whether the two patterns are identical
 func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
-	for i, node1 := range pattern1 {
-		if i >= len(pattern2) { return false }
+	if len(pattern1) != len(pattern2) { return false }
 
+	for i, node1 := range pattern1 {
 		node2 := pattern2[i]
 
 		if node1.Type != node2.Type { return false }
@@ -68,6 +90,18 @@ func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
 			if !comparePatterns(node1.Children, node2.Children) {
 				return false
 			}
+		}
+		if node1.Type == STNodeTypeMap {
+			if !comparePatterns(node1.Children, node2.Children) {
+				return false
+			}
+
+			zip1 := make([]STNode, len(node1.Children))
+			zip2 := make([]STNode, len(node2.Children))
+			for j, z := range node1.Children { zip1[j] = *z.Zip }
+			for j, z := range node2.Children { zip2[j] = *z.Zip }
+
+			if !comparePatterns(zip1, zip2) { return false }
 		}
 	}
 
@@ -220,6 +254,44 @@ func GolspBuiltinLambda(scope GolspScope, arguments []GolspObject) GolspObject {
 	}
 }
 
+// GolspBuiltinRequire: The builtin 'require' function. This function evaluates a
+// Golsp file and returns the GolspObject that the file exports.
+func GolspBuiltinRequire(scope GolspScope, args []GolspObject) GolspObject {
+	arguments := EvalArgs(scope, args)
+
+	if len(arguments) < 1 {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+	if arguments[0].Value.Type != STNodeTypeStringLiteral {
+		return Builtins.Identifiers[UNDEFINED]
+	}
+
+	dirnode := LookupIdentifier(scope, DIRNAME)
+	dirname := dirnode.Value.Head[1:len(dirnode.Value.Head) - 1]
+	rawpath := arguments[0].Value.Head[1:len(arguments[0].Value.Head) - 1]
+	if strings.HasPrefix(rawpath, "stdlib/") {
+		// TODO find a better way to do this
+		dirname = os.Getenv("GOLSPPATH")
+	}
+
+	resolvedpath := filepath.Join(dirname, rawpath)
+
+	if strings.HasSuffix(resolvedpath, ".so") {
+		plug, err := plugin.Open(resolvedpath)
+		if err != nil { return Builtins.Identifiers[UNDEFINED] }
+		exportssym, err := plug.Lookup("Exports")
+		if err != nil { return Builtins.Identifiers[UNDEFINED] }
+		return *exportssym.(*GolspObject)
+	}
+
+	file, err := os.Open(resolvedpath)
+	if err != nil { return Builtins.Identifiers[UNDEFINED] }
+	data, err := ioutil.ReadAll(file)
+	if err != nil { return Builtins.Identifiers[UNDEFINED] }
+
+	return Run(filepath.Dir(resolvedpath), resolvedpath, []string{}, string(data))
+}
+
 // GolspBuiltinMathFunction: Produce a Golsp builtin function for a given math operator
 // `op`: the math operator, one of + - * / %
 // this function returns a GolspObject containing the builtin function for the math operator
@@ -228,7 +300,7 @@ func GolspBuiltinMathFunction(op string) GolspObject {
 	// this function returns the result of the math operation
 	fn := func (scope GolspScope, args []GolspObject) GolspObject {
 		// math operations are undefined on non-numbers
-		arguments := evalArgs(scope, args)
+		arguments := EvalArgs(scope, args)
 		for _, a := range arguments {
 			if a.Value.Type != STNodeTypeNumberLiteral {
 				return Builtins.Identifiers[UNDEFINED]
@@ -236,66 +308,35 @@ func GolspBuiltinMathFunction(op string) GolspObject {
 		}
 
 		result := 0.0
+		numbers := make([]float64, len(arguments))
+		for i, arg := range arguments {
+			numbers[i], _ = strconv.ParseFloat(arg.Value.Head, 64)
+		}
 
 		switch op {
 		case "+":
-			for _, v := range arguments {
-				n, _ := strconv.ParseFloat(v.Value.Head, 64)
-				result += n
-			}
+			for _, n := range numbers { result += n }
 		case "-":
-			if len(arguments) > 0 {
-				n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-				result += n
-			}
-
-			for _, v := range arguments[1:] {
-				n, _ := strconv.ParseFloat(v.Value.Head, 64)
-				result -= n
-			}
+			if len(numbers) > 0 { result += numbers[0] }
+			for _, n := range numbers[1:] { result -= n }
 		case "*":
 			result = 1.0
-			for _, v := range arguments {
-				n, _ := strconv.ParseFloat(v.Value.Head, 64)
-				result *= n
-			}
+			for _, n := range numbers { result *= n }
 		case "/":
 			numerator := 1.0
-			if len(arguments) > 0 {
-				n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-				numerator *= n
-			}
-
+			if len(numbers) > 0 { numerator *= numbers[0] }
 			denominator := 1.0
-			for _, v := range arguments[1:] {
-				n, _ := strconv.ParseFloat(v.Value.Head, 64)
-				denominator *= n
-			}
-
+			for _, n := range numbers[1:] { denominator *= n }
 			result = numerator / denominator
 		case "%":
 			numerator := 1.0
-			if len(arguments) > 0 {
-				n, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-				numerator *= n
-			}
-
+			if len(numbers) > 0 { numerator *= numbers[0] }
 			denominator := 1.0
-			for _, v := range arguments[1:] {
-				n, _ := strconv.ParseFloat(v.Value.Head, 64)
-				denominator *= n
-			}
-
+			for _, n := range numbers[1:] { denominator *= n }
 			result = float64(int(numerator) % int(denominator))
 		}
 
-		return GolspObject{
-			Type: GolspObjectTypeLiteral,
-			Value: STNode{
-				Head: fmt.Sprintf("%v", result),
-				Type: STNodeTypeNumberLiteral,
-			},
-		}
+		return GolspNumberObject(result)
 	}
 
 	return GolspBuiltinFunctionObject(fn)
@@ -316,6 +357,17 @@ func formatStr(text string, objects []GolspObject) string {
 		if v.Type == GolspObjectTypeList {
 			args[i] = fmt.Sprintf("{%v}",
 				formatStr(strings.Repeat("%v ", len(v.Elements)), v.Elements))
+			continue
+		}
+
+		if v.Type == GolspObjectTypeMap {
+			strs := make([]string, 0, len(v.MapKeys))
+			for _, key := range v.MapKeys {
+				str := fmt.Sprintf("%v: %v", key.Value.Head,
+					formatStr("%v", []GolspObject{v.Map[key.Value.Head]}))
+				strs = append(strs, str)
+			}
+			args[i] = fmt.Sprintf("map(%v)", strings.Join(strs, ", "))
 			continue
 		}
 
@@ -341,7 +393,7 @@ func formatStr(text string, objects []GolspObject) string {
 // Go-style format string with a set of arguments
 // this function returns the formatted string
 func GolspBuiltinSprintf(scope GolspScope, args []GolspObject) GolspObject {
-	arguments := evalArgs(scope, args)
+	arguments := EvalArgs(scope, args)
 
 	if arguments[0].Value.Type != STNodeTypeStringLiteral {
 		return Builtins.Identifiers[UNDEFINED]
@@ -350,13 +402,7 @@ func GolspBuiltinSprintf(scope GolspScope, args []GolspObject) GolspObject {
 	text := arguments[0].Value.Head
 	text = text[1:len(text) - 1]
 
-	return GolspObject{
-		Type: GolspObjectTypeLiteral,
-		Value: STNode{
-			Head: fmt.Sprintf("\"%v\"", formatStr(text, arguments[1:])),
-			Type: STNodeTypeStringLiteral,
-		},
-	}
+	return GolspStringObject(formatStr(text, arguments[1:]))
 }
 
 // GolspBuiltinPrintf: The builtin 'printf' function. This function formats
@@ -385,10 +431,7 @@ func GolspBuiltinDo(scope GolspScope, arguments []GolspObject) GolspObject {
 	}
 
 	args := make([]STNode, len(arguments))
-
-	for i, c := range arguments {
-		args[i] = c.Value
-	}
+	for i, c := range arguments { args[i] = c.Value }
 
 	scopenode := STNode{
 		Type: STNodeTypeScope,
@@ -402,7 +445,11 @@ func GolspBuiltinDo(scope GolspScope, arguments []GolspObject) GolspObject {
 // a series of statements within an enclosed, isolated scope
 // this function returns UNDEFINED
 func GolspBuiltinGo(scope GolspScope, arguments []GolspObject) GolspObject {
-	go GolspBuiltinDo(scope, arguments)
+	WaitGroup.Add(1)
+	go func () {
+		defer WaitGroup.Done()
+		GolspBuiltinDo(scope, arguments)
+	}()
 
 	return Builtins.Identifiers[UNDEFINED]
 }
@@ -411,7 +458,7 @@ func GolspBuiltinGo(scope GolspScope, arguments []GolspObject) GolspObject {
 // specified number of milliseconds
 // this function returns UNDEFINED
 func GolspBuiltinSleep(scope GolspScope, arguments []GolspObject) GolspObject {
-	argobjects := evalArgs(scope, arguments)
+	argobjects := EvalArgs(scope, arguments)
 
 	if argobjects[0].Type != GolspObjectTypeLiteral ||
 		argobjects[0].Value.Type != STNodeTypeNumberLiteral {
@@ -463,11 +510,11 @@ func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
 
 	if cond {
 		if len(arguments) > 1 { return arguments[1] }
-		if len(args) > 1 { return evalArgs(scope, args[1:2])[0] }
+		if len(args) > 1 { return EvalArgs(scope, args[1:2])[0] }
 	}
 
 	if len(arguments) > 2 { return arguments[2] }
-	if len(args) > 2 { return evalArgs(scope, args[2:3])[0] }
+	if len(args) > 2 { return EvalArgs(scope, args[2:3])[0] }
 
 	return Builtins.Identifiers[UNDEFINED]
 }
@@ -480,8 +527,7 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 	// fn: the builtin comparison function. This function compares numbers and strings as of now
 	// this function returns the result of the comparison operator
 	fn := func (scope GolspScope, args []GolspObject) GolspObject {
-		arguments := evalArgs(scope, args)
-
+		arguments := EvalArgs(scope, args)
 		if len(arguments) != 2 {
 			return Builtins.Identifiers[UNDEFINED]
 		}
@@ -490,13 +536,7 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 
 		if arguments[0].Type != GolspObjectTypeLiteral ||
 			arguments[1].Type != GolspObjectTypeLiteral {
-			return GolspObject{
-				Type: GolspObjectTypeLiteral,
-				Value: STNode{
-					Head: "0",
-					Type: STNodeTypeNumberLiteral,
-				},
-			}
+			return GolspNumberObject(0)
 		}
 
 		if arguments[0].Value.Head == UNDEFINED ||
@@ -508,13 +548,7 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 			resultint := 0
 			if result { resultint = 1 }
 
-			return GolspObject{
-				Type: GolspObjectTypeLiteral,
-				Value: STNode{
-					Head: strconv.Itoa(resultint),
-					Type: STNodeTypeNumberLiteral,
-				},
-			}
+			return GolspNumberObject(float64(resultint))
 		}
 
 		argtype := arguments[0].Value.Type
@@ -560,35 +594,18 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 
 		if result { resultint = 1 }
 
-		return GolspObject{
-			Type: GolspObjectTypeLiteral,
-			Value: STNode{
-				Head: strconv.Itoa(resultint),
-				Type: STNodeTypeNumberLiteral,
-			},
-		}
+		return GolspNumberObject(float64(resultint))
 	}
 
 	return GolspBuiltinFunctionObject(fn)
 }
 
-// GolspBuiltinFunctionObject: wrap a function pointer with a specific signature
-// (i.e a golsp builtin function) in a GolspObject
-// `fn`: the builtin function
-// this function returns the GolspObject containing the builtin function
-func GolspBuiltinFunctionObject(fn GolspBuiltinFunction) GolspObject {
-	return GolspObject{
-		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{BuiltinFunc: fn},
-	}
-}
-
-// evalArgs: evlauate a list of arguments passed to builtin functions,
+// EvalArgs: evaluate a list of arguments passed to builtin functions,
 // primarily used to handle spreading
 // `scp`: the scope within which to evaluate the arguments
 // `args`: the arguments to evaluate
 // this function returns the evaluated arguments as a list of GolspObjects
-func evalArgs(scp GolspScope, args []GolspObject) []GolspObject {
+func EvalArgs(scp GolspScope, args []GolspObject) []GolspObject {
 	scope := MakeScope(&scp)
 	arguments := make([]GolspObject, 0, len(args))
 	for _, child := range args {
@@ -606,15 +623,4 @@ func evalArgs(scp GolspScope, args []GolspObject) []GolspObject {
 	}
 
 	return arguments
-}
-
-// GolspUndefinedIdentifier: Produce the UNDEFINED identifier syntax tree node.
-// Used because structs and other data structures are mutable by default and cannot
-// be stored in consts
-// this function returns the UNDEFINED STNode
-func GolspUndefinedIdentifier() STNode {
-	return STNode{
-		Head: UNDEFINED,
-		Type: STNodeTypeIdentifier,
-	}
 }
