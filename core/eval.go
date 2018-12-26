@@ -71,15 +71,20 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 // list of patterns
 func matchPatterns(fn GolspFunction, arguments []GolspObject) int {
 	patterns := fn.FunctionPatterns
-	bestmatchscore := 0
-	bestmatchindex := 0
+	bestmatchscore := -1
+	bestmatchindex := -1
 
 	for i, p := range patterns {
-		score := 0
+		score := -1
 		minlen := int(math.Min(float64(len(p)), float64(len(arguments))))
 
+		if len(p) == 0 { score = 0 }
+
 		for j := 0; j < minlen; j++ {
-			if comparePatternNode(p[j], arguments[j]) { score++ }
+			if comparePatternNode(p[j], arguments[j]) {
+				if score == -1 { score = 0 }
+				score++
+			}
 		}
 
 		if score > bestmatchscore {
@@ -598,6 +603,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	}
 
 	patternindex := matchPatterns(fn, argobjects)
+	if patternindex == -1 { return Builtins.Identifiers[UNDEFINED] }
+
 	pattern := fn.FunctionPatterns[patternindex]
 
 	// calling a function with fewer arguments than required evaluates to UNDEFINED

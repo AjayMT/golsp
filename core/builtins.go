@@ -75,9 +75,9 @@ func InitializeBuiltins(dirname string, filename string, args []string) {
 // `pattern2`: the second pattern
 // this function returns whether the two patterns are identical
 func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
-	for i, node1 := range pattern1 {
-		if i >= len(pattern2) { return false }
+	if len(pattern1) != len(pattern2) { return false }
 
+	for i, node1 := range pattern1 {
 		node2 := pattern2[i]
 
 		if node1.Type != node2.Type { return false }
