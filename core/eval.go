@@ -416,6 +416,22 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 	}
 }
 
+// evalDot: Evaluate 'dot' property access operator on map objects
+// `obj`: the (map) object
+// `root`: the syntax tree node associated with the dot operator
+// this function returns the value from the map object
+func evalDot(obj GolspObject, root STNode) GolspObject {
+	if root.Dot == nil { return obj }
+	if obj.Type != GolspObjectTypeMap { return Builtins.Identifiers[UNDEFINED] }
+	if root.Dot.Type != STNodeTypeIdentifier { return Builtins.Identifiers[UNDEFINED] }
+
+	key := fmt.Sprintf("\"%s\"", root.Dot.Head)
+	value, exists := obj.Map[key]
+	if !exists { return Builtins.Identifiers[UNDEFINED] }
+
+	return evalDot(value, *root.Dot)
+}
+
 // Eval: Evaluate a syntax tree node within a scope
 // `scope`: the scope within which to evaluate the node
 // `root`: the root node to evaluate
@@ -427,7 +443,6 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// cause side-effects, especially important for 'go' blocks
 	if root.Type == STNodeTypeScope {
 		newscope := IsolateScope(scope)
-
 		var result GolspObject
 		for _, child := range root.Children {
 			if child.Spread {
@@ -438,20 +453,21 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		return copyObject(result)
+		return evalDot(copyObject(result), root)
 	}
 
 	// string and number literals simply evaluate to themselves
 	if root.Type == STNodeTypeNumberLiteral || root.Type == STNodeTypeStringLiteral {
-		return GolspObject{
+		result := GolspObject{
 			Type: GolspObjectTypeLiteral,
 			Value: root,
 		}
+		return evalDot(result, root)
 	}
 
 	// identifers evaluate to their corresponding values within the scope or UNDEFINED
 	if root.Type == STNodeTypeIdentifier {
-		return LookupIdentifier(scope, root.Head)
+		return evalDot(LookupIdentifier(scope, root.Head), root)
 	}
 
 	// 'list' type syntax tree nodes evaluate to 'list' type GolspObjects
@@ -467,10 +483,11 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		return GolspObject{
+		result := GolspObject{
 			Type: GolspObjectTypeList,
 			Elements: elements,
 		}
+		return evalDot(result, root)
 	}
 
 	// 'map' type syntax tree nodes evaluate to maps
@@ -511,13 +528,15 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		return obj
+		return evalDot(obj, root)
 	}
 
 	// at this point the root node must be an expression
 
 	// empty expressions evaluate to UNDEFINED
-	if len(root.Children) == 0 { return Builtins.Identifiers[UNDEFINED] }
+	if len(root.Children) == 0 {
+		return evalDot(Builtins.Identifiers[UNDEFINED], root)
+	}
 
 	// exprhead is the head of the expression, aka the function
 	// that is being called, list that is being sliced, etc...
@@ -549,7 +568,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	if exprhead.Type == GolspObjectTypeLiteral &&
 		(exprhead.Value.Type == STNodeTypeNumberLiteral ||
 		exprhead.Value.Head == UNDEFINED) {
-		return exprhead
+		return evalDot(exprhead, root)
 	}
 
 	// if exprhead is a list or string literal, slice it
@@ -566,10 +585,10 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 
 		if exprhead.Type == GolspObjectTypeMap {
-			return evalMap(exprhead, argobjects)
+			return evalDot(evalMap(exprhead, argobjects), root)
 		}
 
-		return evalSlice(exprhead, argobjects)
+		return evalDot(evalSlice(exprhead, argobjects), root)
 	}
 
 	// at this point the expression must be a function call
@@ -589,11 +608,11 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			argobjects = append(argobjects, obj)
 		}
 
-		return fn.BuiltinFunc(scope, argobjects)
+		return evalDot(fn.BuiltinFunc(scope, argobjects), root)
 	}
 
 	// at this point the expression must be a calling a user-defined function
-	// all arguments are evaluated immediately, unlike Haskell's lazy evaluation
+	// all arguments are evaluated immediately
 	for _, c := range root.Children[1:] {
 		if c.Spread {
 			argobjects = append(argobjects, SpreadNode(argscope, c)...)
@@ -604,7 +623,6 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	patternindex := matchPatterns(fn, argobjects)
 	if patternindex == -1 { return Builtins.Identifiers[UNDEFINED] }
-
 	pattern := fn.FunctionPatterns[patternindex]
 
 	// calling a function with fewer arguments than required evaluates to UNDEFINED
@@ -615,7 +633,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	bindArguments(exprhead, pattern, argobjects)
 
-	return Eval(exprhead.Scope, fn.FunctionBodies[patternindex])
+	return evalDot(Eval(exprhead.Scope, fn.FunctionBodies[patternindex]), root)
 }
 
 // Run: Run a Golsp program

@@ -14,12 +14,14 @@ type OperatorType int
 const (
 	OperatorTypeSpread OperatorType = 0
 	OperatorTypeZip OperatorType = 1
+	OperatorTypeDot OperatorType = 2
 )
 
-var Operators = []string{"...", ":"}
+var Operators = []string{"...", ":", "."}
 var OperatorTypes = map[string]OperatorType{
 	"...": OperatorTypeSpread,
 	":": OperatorTypeZip,
+	".": OperatorTypeDot,
 }
 
 var LiteralDelimiters = map[string]string{"\"": "\"", "#": "\n"}
@@ -106,22 +108,26 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 		// check if current token is an operator
 		optype, isOperator := OperatorTypes[current.Head]
 		if isOperator && len(nodes) > 0 {
-			switch optype {
-			case OperatorTypeSpread:
+			if optype == OperatorTypeSpread {
 				nodes[len(nodes) - 1].Spread = true
-
-			case OperatorTypeZip:
-				// zip operators have to be parsed recursively
-				// this is a very awkward solution since I cannot actually parse
-				// infix operators properly -- ideally the operator would be a
-				// node with a left and right child
-				nextnodes, nexttokens := makeST(delim, tokens[i + 1:])
-				if len(nextnodes) > 0 {
-					nodes[len(nodes) - 1].Zip = &nextnodes[0]
-					nodes = append(nodes, nextnodes[1:]...)
-					return nodes, nexttokens
-				}
+				continue
 			}
+
+			// zip and dot operators have to be parsed recursively
+			// this is a very awkward solution since I cannot actually parse
+			// infix operators properly -- ideally the operator would be a
+			// node with a left and right child
+			nextnodes, nexttokens := makeST(delim, tokens[i + 1:])
+			if len(nextnodes) > 0 {
+				if optype == OperatorTypeZip {
+					nodes[len(nodes) - 1].Zip = &nextnodes[0]
+				} else {
+					nodes[len(nodes) - 1].Dot = &nextnodes[0]
+				}
+				nodes = append(nodes, nextnodes[1:]...)
+				return nodes, nexttokens
+			}
+
 			continue
 		}
 

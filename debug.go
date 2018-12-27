@@ -54,5 +54,16 @@ func PrintST(root STNode) string {
 		str += "\n),"
 	}
 
+	if root.Dot != nil {
+		str += "\nDot: ("
+		childstr := PrintST(*root.Dot)
+		lines := strings.Split(childstr, "\n")
+		for i := 0; i < len(lines); i++ {
+			lines[i] = "  " + lines[i]
+		}
+		str += strings.Join(lines, "\n")
+		str += "\n),"
+	}
+
 	return str
 }

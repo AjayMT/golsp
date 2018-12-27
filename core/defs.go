@@ -9,7 +9,7 @@ import (
 )
 
 // STNode: A single syntax tree node that has a 'head' (i.e value), type,
-// list of child nodes and flags/fields for the two operators
+// list of child nodes and flags/fields for operators
 
 type STNodeType int
 const (
@@ -29,6 +29,7 @@ type STNode struct {
 	Children []STNode
 	Spread bool
 	Zip *STNode
+	Dot *STNode
 }
 
 // /STNode

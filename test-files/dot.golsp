@@ -1,0 +1,29 @@
+
+[= types [require "stdlib/types.golsp"]]
+
+[printf "%v %v %v\n" [types.isString "hello"] [types.isNumber "test"] [types.isFunction types.isFunction]]
+
+[= map (
+   "hello": "world"
+   "a": 1
+   "b": 3
+   "map": (
+			"chuchu": "dog"
+		  )
+ )]
+
+[printf map.map.chuchu]
+[printf "\n%v\n" [types.isMap map.map]]
+[printf "%v\n"
+ (
+   "a": "b"
+   "hello": "quux"
+   "map": (
+            "foo": "bar"
+          )
+ ).map.foo
+]
+
+[= [makemap a b] ( a: b )]
+
+[printf "%v %v\n" [makemap "xyz" "cat"].xyz [makemap "quux" "baz"].jj]
