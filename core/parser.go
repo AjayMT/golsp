@@ -252,7 +252,7 @@ func Tokenize(input string) []string {
 			continue
 		}
 
-		_, literal := LiteralDelimiters[string(r)]
+		end, literal := LiteralDelimiters[string(r)]
 		if literal {
 			if len(token) > 0 {
 				tokens = append(tokens, token)
@@ -262,6 +262,7 @@ func Tokenize(input string) []string {
 			len, str := parseLiteral(string(r), runes[i + 1:])
 			i += len
 			tokens = append(tokens, string(r) + str)
+			if end == "\n" { tokens = append(tokens, end) }
 			continue
 		}
 
