@@ -1,9 +1,9 @@
 
-[= sentence "-the-quick-brown-fox-jumps-over-the-lazy-dog------"]
+[def sentence "-the-quick-brown-fox-jumps-over-the-lazy-dog------"]
 
-[= [merge ord l1 {}] l1]
-[= [merge ord {} l2] l2]
-[= [merge ord { headl taill... } { headr tailr... }]
+[def [merge ord l1 {}] l1]
+[def [merge ord {} l2] l2]
+[def [merge ord { headl taill... } { headr tailr... }]
  [if [ord headr headl]
   { headl
     [merge ord taill { headr tailr... }]... }
@@ -12,29 +12,29 @@
  ]
 ]
 
-[= [len {}] 0]
-[= [len { _ tail... }] [+ 1 [len tail]]]
+[def [len {}] 0]
+[def [len { _ tail... }] [+ 1 [len tail]]]
 
-[= [mergesort ord {}] {}]
-[= [mergesort ord { x }] { x }]
-[= [mergesort ord list]
+[def [mergesort ord {}] {}]
+[def [mergesort ord { x }] { x }]
+[def [mergesort ord list]
  [do
-  [= midpoint [/ [len list] 2]]
-  [= left [list 0 midpoint]]
-  [= right [list midpoint undefined]]
+  [def midpoint [/ [len list] 2]]
+  [def left [list 0 midpoint]]
+  [def right [list midpoint undefined]]
   [merge ord [mergesort ord left] [mergesort ord right]]
  ]
 ]
 
-[= [joinstr {}] ""]
-[= [joinstr { head tail... }] [sprintf "%v%v" head [joinstr tail]]]
+[def [joinstr {}] ""]
+[def [joinstr { head tail... }] [sprintf "%v%v" head [joinstr tail]]]
 
 [printf "%v\n" [joinstr [mergesort > { sentence... }]]]
 
-[= [splitlist {} sep] {}]
-[= [splitlist { head tail... } sep]
+[def [splitlist {} sep] {}]
+[def [splitlist { head tail... } sep]
  [do
-  [= rest [splitlist tail sep]]
+  [def rest [splitlist tail sep]]
   [if [== head sep]
    { {} rest... }
    { { head [rest 0]... } [rest 1 undefined]... }
@@ -42,7 +42,7 @@
  ]
 ]
 
-[= [map f {}] {}]
-[= [map f { head tail... }] { [f head] [map f tail]... }]
+[def [map f {}] {}]
+[def [map f { head tail... }] { [f head] [map f tail]... }]
 
 [printf "%v\n" [map joinstr [splitlist { sentence... } "-"]]]

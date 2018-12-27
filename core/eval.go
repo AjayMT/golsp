@@ -120,7 +120,9 @@ func MakeScope(parent *GolspScope) GolspScope {
 	newscope := GolspScope{
 		Parent: parent,
 		Identifiers: make(map[string]GolspObject),
+		Constants: make(map[string]bool, len(parent.Constants)),
 	}
+	for k, v := range parent.Constants { newscope.Constants[k] = v }
 
 	return newscope
 }
@@ -151,14 +153,16 @@ func copyObject(object GolspObject) GolspObject {
 		Function: copyFunction(object.Function),
 		Elements: make([]GolspObject, len(object.Elements)),
 		MapKeys: make([]GolspObject, len(object.MapKeys)),
-		Map: make(map[string]GolspObject),
+		Map: make(map[string]GolspObject, len(object.Map)),
 		Scope: GolspScope{
 			Parent: object.Scope.Parent,
-			Identifiers: make(map[string]GolspObject),
+			Identifiers: make(map[string]GolspObject, len(object.Scope.Identifiers)),
+			Constants: make(map[string]bool, len(object.Scope.Constants)),
 		},
 	}
 
 	for k, o := range object.Scope.Identifiers { newobject.Scope.Identifiers[k] = copyObject(o) }
+	for k, v := range object.Scope.Constants { newobject.Scope.Constants[k] = v }
 	for i, e := range object.Elements { newobject.Elements[i] = copyObject(e) }
 	for i, k := range object.MapKeys { newobject.MapKeys[i] = copyObject(k) }
 	for k, v := range object.Map { newobject.Map[k] = copyObject(v) }
@@ -172,19 +176,24 @@ func copyObject(object GolspObject) GolspObject {
 // `scope`: the scope to isolate
 // this function returns the isolated scope
 func IsolateScope(scope GolspScope) GolspScope {
-	newscope := GolspScope{Identifiers: make(map[string]GolspObject)}
+	newscope := GolspScope{
+		Identifiers: make(map[string]GolspObject, len(scope.Identifiers)),
+		Constants: make(map[string]bool, len(scope.Constants)),
+	}
 	if scope.Parent != nil {
 		parent := IsolateScope(*(scope.Parent))
 		for k, obj := range parent.Identifiers {
 			obj.Scope.Parent = &newscope
 			newscope.Identifiers[k] = obj
 		}
+		for k, v := range parent.Constants { newscope.Constants[k] = v }
 	}
 	for k, o := range scope.Identifiers {
 		obj := copyObject(o)
 		obj.Scope.Parent = &newscope
 		newscope.Identifiers[k] = obj
 	}
+	for k, v := range scope.Constants { newscope.Constants[k] = v }
 
 	return newscope
 }
@@ -497,7 +506,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	if root.Type == STNodeTypeMap {
 		obj := GolspObject{
 			Type: GolspObjectTypeMap,
-			Map: make(map[string]GolspObject),
+			Map: make(map[string]GolspObject, len(root.Children)),
 			MapKeys: make([]GolspObject, 0, len(root.Children)),
 		}
 
@@ -562,7 +571,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// the function's argument scope is cleared every time it is called
 	// since the arguments will be bound again
 	if exprhead.Type == GolspObjectTypeFunction {
-		exprhead.Scope.Identifiers = make(map[string]GolspObject)
+		exprhead.Scope.Identifiers = make(map[string]GolspObject, len(exprhead.Scope.Identifiers))
 	}
 
 	// evaluating an expression with a number literal or UNDEFINED head

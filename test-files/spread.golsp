@@ -1,15 +1,15 @@
 
-[= a { 1 2 3 }]
+[def a { 1 2 3 }]
 
-[= b { 4 5 6 }]
+[def b { 4 5 6 }]
 
-[= c { a... b... }]
+[def c { a... b... }]
 
-[= [d] { a... b... c... }]
+[def [d] { a... b... c... }]
 
-[= [q l] { * l... }]
+[def [q l] { * l... }]
 
-[= [reverse list]
+[def [reverse list]
  { [list -1 0 -1]... [list 0] }]
 
 [printf "%v\n" c]
@@ -23,7 +23,7 @@
 
 [printf "%v\n"
  [do
-  [= l { "trsaasdfd" "sdfjsdk" "dfkj" }]
+  [def l { "trsaasdfd" "sdfjsdk" "dfkj" }]
   l...]]
 
 [printf "%v\n" [{}...]]

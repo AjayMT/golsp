@@ -40,6 +40,7 @@ type STNode struct {
 type GolspScope struct {
 	Parent *GolspScope
 	Identifiers map[string]GolspObject
+	Constants map[string]bool
 }
 
 // /GolspScope

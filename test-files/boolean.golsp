@@ -1,9 +1,9 @@
 
-[= [a x] [* x 2]]
+[def [a x] [* x 2]]
 
-[= b 3]
+[def b 3]
 
-[= cond [== b [/ [a b] 2]]]
+[def cond [== b [/ [a b] 2]]]
 
 [printf "%v\n" [== undefined 1]]
 [printf "%v\n" [>= x y]]
@@ -12,7 +12,7 @@
  [printf "true\n"]]
 
 [if [== "test" "test"]
- [printf "test === test\n"]]
+ [printf "test defdefdef test\n"]]
 
 [if [!= "test" "test"]
  [printf "true expr\n"]

@@ -1,5 +1,5 @@
 
-[= map (
+[def map (
     "hello" : "world"
     "test" : 1
     "a" : "b"
@@ -7,10 +7,10 @@
     6 : 8
 )]
 
-[= [func]
+[def [func]
  [go
   [sleep 500]
-  [= map (
+  [def map (
       map... : [map map...]...
       4 : 17
   )]

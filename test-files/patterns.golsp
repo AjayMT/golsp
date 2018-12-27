@@ -1,23 +1,23 @@
 
-[= a "test"]
+[def a "test"]
 
-[= [b "test"] "chuchu"]
-[= [b x] "xyz"]
+[def [b "test"] "chuchu"]
+[def [b x] "xyz"]
 
 [printf "%v\n" [b "foo"]]
 [printf "%v\n" [b a]]
 [printf "%v\n" [b "test"]]
 
-[= [len {}] 0]
+[def [len {}] 0]
 
-[= [len list]
+[def [len list]
  [+ 1
   [len [list 0 -1]]]]
 
 [printf "%v\n" [len {1 2 3}]]
 [printf "%v\n" [len {1}]]
 
-[= [! 0] 1]
-[= [! n] [* n [! [- n 1]]]]
+[def [! 0] 1]
+[def [! n] [* n [! [- n 1]]]]
 
 [printf "%v\n" [! 6]]

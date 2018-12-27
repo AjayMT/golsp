@@ -1,15 +1,15 @@
 
-[= x 2]
-[= [func] [printf "x: %v\n" x]]
+[def x 2]
+[def [func] [printf "x: %v\n" x]]
 
-[= [closure a]
+[def [closure a]
  [lambda []
   [+ x a]
  ]
 ]
 
 [go
- [= x 4]
+ [def x 4]
  [sleep 1000]
  [func]
  [printf "closure: %v\n" [[closure 1]]]
@@ -17,6 +17,6 @@
 
 [func]
 [printf "closure: %v\n" [[closure 1]]]
-[= x 3]
+[def x 3]
 [func]
 [printf "closure: %v\n" [[closure 1]]]

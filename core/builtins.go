@@ -21,13 +21,14 @@ var WaitGroup sync.WaitGroup
 // InitializeBuiltins: Initialize the default builtin scope ('Builtins')
 // with builtin identifiers
 func InitializeBuiltins(dirname string, filename string, args []string) {
-	Builtins.Identifiers = map[string]GolspObject{
+	identifiers := map[string]GolspObject{
 		UNDEFINED: GolspUndefinedObject(),
 		DIRNAME: GolspStringObject(dirname),
 		FILENAME: GolspStringObject(filename),
 		ARGS: GolspListObject(args),
 
-		"=": GolspBuiltinFunctionObject(GolspBuiltinEquals),
+		"def": GolspBuiltinFunctionObject(GolspBuiltinDef),
+		"const": GolspBuiltinFunctionObject(GolspBuiltinConst),
 		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
 		"require": GolspBuiltinFunctionObject(GolspBuiltinRequire),
 		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
@@ -50,6 +51,10 @@ func InitializeBuiltins(dirname string, filename string, args []string) {
 		">=": GolspBuiltinComparisonFunction(">="),
 		"<=": GolspBuiltinComparisonFunction("<="),
 	}
+
+	Builtins.Identifiers = identifiers
+	Builtins.Constants = make(map[string]bool)
+	for k, _ := range identifiers { Builtins.Constants[k] = true }
 }
 
 // comparePatterns: Compare two function potterns (as passed to the '=' function)
@@ -92,14 +97,31 @@ func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
 	return true
 }
 
-// GolspBuiltinEquals: The builtin '=' function. This function (re)binds identifiers
-// to objects and function patterns to expressions. It only acts within its immediate
-// scope and does not cause side-effects elsewhere
-// `scope`: the scope within which this function is evaluated
+func isConstant(scope GolspScope, identifier string) bool {
+	constant, exists := scope.Constants[identifier]
+	if exists { return constant }
+	if scope.Parent != nil { return isConstant(*scope.Parent, identifier) }
+
+	return false
+}
+
+// see 'assign'
+func GolspBuiltinDef(scope GolspScope, arguments []GolspObject) GolspObject {
+	return assign(scope, arguments, false)
+}
+func GolspBuiltinConst(scope GolspScope, arguments []GolspObject) GolspObject {
+	return assign(scope, arguments, true)
+}
+
+// assign: The builtin 'def' and 'const' functions. These functions (re)bind identifiers
+// to objects and function patterns to expressions. They only act within their immediate
+// scope and do not cause side-effects elsewhere
+// `scope`: the scope within which the function is evaluated
 // `arguments`: the arguments passed to the function
+// `constant`: whether the identifier is being set as a constant
 // this function returns a result object -- for '=', this is the value that the
 // identifier or pattern was bound to
-func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
+func assign(scope GolspScope, arguments []GolspObject, constant bool) GolspObject {
 	if len(arguments) < 2 {
 		return Builtins.Identifiers[UNDEFINED]
 	}
@@ -120,9 +142,8 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	}
 
 	if symbol.Type == STNodeTypeIdentifier {
-		// attempting to assign to a builtin identifier fails
-		_, builtin := Builtins.Identifiers[symbol.Head]
-		if builtin {
+		// attempting to assign to a constant identifier fails
+		if isConstant(scope, symbol.Head) {
 			return Builtins.Identifiers[UNDEFINED]
 		}
 
@@ -130,6 +151,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 		// and symbol is bound to it
 		valuescope := MakeScope(&scope)
 		scope.Identifiers[symbol.Head] = Eval(valuescope, value)
+		if constant { scope.Constants[symbol.Head] = true }
 		return scope.Identifiers[symbol.Head]
 	}
 
@@ -152,10 +174,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 	}
 
 	symbol = head
-	_, builtin := Builtins.Identifiers[symbol.Head]
-	if builtin {
-		return Builtins.Identifiers[UNDEFINED]
-	}
+	if isConstant(scope, symbol.Head) { return Builtins.Identifiers[UNDEFINED] }
 
 	_, exists := scope.Identifiers[symbol.Head]
 	if !exists {
@@ -178,6 +197,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 
 	if patternexists {
 		scope.Identifiers[symbol.Head].Function.FunctionBodies[patternindex] = value
+		if constant { scope.Constants[symbol.Head] = true }
 		return scope.Identifiers[symbol.Head]
 	}
 
@@ -192,6 +212,7 @@ func GolspBuiltinEquals(scope GolspScope, arguments []GolspObject) GolspObject {
 		Function: newfn,
 	}
 
+	if constant { scope.Constants[symbol.Head] = true }
 	return scope.Identifiers[symbol.Head]
 }
 

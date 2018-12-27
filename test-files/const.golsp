@@ -1,0 +1,12 @@
+
+[const types [require "stdlib/types.golsp"]]
+[printf "%v %v\n" [types.isMap types] types]
+[def types "hello"]
+[printf "%v %v\n" [types.isMap types] types]
+[do
+ [def types "quux"]
+ [printf "%v %v\n" [types.isMap types] types]
+]
+
+[[def [func x] [def types x]] "quux"]
+[printf "%v %v\n" [types.isMap types] types]

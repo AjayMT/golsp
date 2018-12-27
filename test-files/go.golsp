@@ -1,9 +1,9 @@
 
-[= x 1]
+[def x 1]
 
 [go
  [sleep 500]
- [= x 2]
+ [def x 2]
  [printf "hello %v\n" x]]
 
 [sleep 1000]

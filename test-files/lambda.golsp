@@ -1,7 +1,7 @@
 
-[= [compose {} input] input]
+[def [compose {} input] input]
 
-[= [compose functions input]
+[def [compose functions input]
  [compose
   [functions 0 -1]
   [[functions -1] input]

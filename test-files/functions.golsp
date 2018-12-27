@@ -1,14 +1,14 @@
 
-[= [incr n] [+ n 1]]
-[= [decr n] [+ n -1]]
+[def [incr n] [+ n 1]]
+[def [decr n] [+ n -1]]
 
-[= [twice f x] [f [f x]]]
+[def [twice f x] [f [f x]]]
 
-[= [functions 0] incr]
-[= [functions 1] decr]
+[def [functions 0] incr]
+[def [functions 1] decr]
 
 [printf "%v\n" [[functions 0] 1]]
 [printf "%v\n" [[functions 1] 1]]
 [printf "%v\n" [twice [functions 0] 1]]
-[printf "%v\n" [twice [= [f n] [+ n 2]] 3]]
+[printf "%v\n" [twice [def [f n] [+ n 2]] 3]]
 [printf "%v\n" [f 2]]

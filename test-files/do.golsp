@@ -1,11 +1,11 @@
 
-[= [a x] [/ x 2]]
+[def [a x] [/ x 2]]
 
-[= [c]
+[def [c]
  [do
-  [= b [a 7]]
+  [def b [a 7]]
   [printf "b: %v\n" b]
-  [= [a 1] 2]
+  [def [a 1] 2]
   [printf "%v\n" [a 3]]
   [printf "%v\n" [a 1]]]]
 
