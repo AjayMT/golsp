@@ -175,7 +175,10 @@ func IsolateScope(scope GolspScope) GolspScope {
 	newscope := GolspScope{Identifiers: make(map[string]GolspObject)}
 	if scope.Parent != nil {
 		parent := IsolateScope(*(scope.Parent))
-		newscope.Parent = &parent
+		for k, obj := range parent.Identifiers {
+			obj.Scope.Parent = &newscope
+			newscope.Identifiers[k] = obj
+		}
 	}
 	for k, o := range scope.Identifiers {
 		obj := copyObject(o)

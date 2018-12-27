@@ -10,5 +10,5 @@
   [printf "%v\n" [a 1]]]]
 
 [c]
-# [printf "%v\n" [a 8]]
-# [printf "%v\n" b]
+[printf "%v\n" [a 8]]
+[printf "%v\n" b]
