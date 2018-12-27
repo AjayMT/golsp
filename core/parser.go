@@ -237,15 +237,25 @@ func Tokenize(input string) []string {
 
 		opindex := matchOperator(runes, i)
 		if opindex != -1 {
-			if len(token) > 0 {
-				tokens = append(tokens, token)
-				token = ""
-			}
-
 			op := Operators[opindex]
 			i += len(op) - 1
-			tokens = append(tokens, op)
-			continue
+
+			// weird hack to get dot operator to play nicely with floating-point numbers
+			isNumber := false
+			if op == "." {
+				_, err := strconv.ParseFloat(token, 64)
+				isNumber = err == nil
+			}
+
+			if op != "." || (!isNumber) {
+				if len(token) > 0 {
+					tokens = append(tokens, token)
+					token = ""
+				}
+
+				tokens = append(tokens, op)
+				continue
+			}
 		}
 
 		_, delimiter := TokenDelimiters[string(r)]

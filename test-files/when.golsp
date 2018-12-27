@@ -1,0 +1,20 @@
+
+[const types [require "stdlib/types.golsp"]]
+
+[const [typeof x]
+ [when
+  [types.isString x]: "string"
+  [types.isNumber x]: "number"
+  [types.isMap x]: "map"
+  [types.isList x]: "list"
+  [types.isFunction x]: "function"
+  1: undefined
+ ]
+]
+
+[printf "typeof %v: %v\n" 3.1 [typeof 3.1]]
+[printf "typeof %v: %v\n" "hello" [typeof "hello"]]
+[printf "typeof %v: %v\n" { 1 2 3 "a" } [typeof { 1 2 3 "a" }]]
+[printf "typeof %v: %v\n" ( "a": 1 2: "b" ) [typeof ( "a": 1 2: "b" )]]
+[printf "typeof %v: %v\n" printf [typeof printf]]
+[printf "typeof %v: %v\n" undefined [typeof undefined]]

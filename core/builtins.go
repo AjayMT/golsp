@@ -32,6 +32,7 @@ func InitializeBuiltins(dirname string, filename string, args []string) {
 		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
 		"require": GolspBuiltinFunctionObject(GolspBuiltinRequire),
 		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
+		"when": GolspBuiltinFunctionObject(GolspBuiltinWhen),
 		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
 		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
 		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
@@ -97,6 +98,11 @@ func comparePatterns(pattern1 []STNode, pattern2 []STNode) bool {
 	return true
 }
 
+// isConstant: Check whether an identifier is constant within a given scope
+// and its parents
+// `scope`: the scope
+// `identifier`: the identifier
+// this function returns whether the identifer is a constant
 func isConstant(scope GolspScope, identifier string) bool {
 	constant, exists := scope.Constants[identifier]
 	if exists { return constant }
@@ -476,6 +482,26 @@ func GolspBuiltinSleep(scope GolspScope, arguments []GolspObject) GolspObject {
 	return Builtins.Identifiers[UNDEFINED]
 }
 
+// objectToBoolean: Convert a GolspObject to a boolean. This function defines the
+// conditions of the builtin 'if' and 'when' functions
+// `obj`: the object
+// this function returns true or false depending on the type and contents of obj
+func objectToBoolean(obj GolspObject) bool {
+	if obj.Type == GolspObjectTypeLiteral {
+		if obj.Value.Type == STNodeTypeNumberLiteral {
+			return obj.Value.Head != "0"
+		}
+		if obj.Value.Type == STNodeTypeStringLiteral {
+			return len(obj.Value.Head) > 2
+		}
+	}
+	if obj.Type == GolspObjectTypeList { return len(obj.Elements) > 0 }
+	if obj.Type == GolspObjectTypeMap { return len(obj.MapKeys) > 0 }
+	if obj.Type == GolspObjectTypeFunction { return true }
+
+	return false
+}
+
 // GolspBuiltinIf: the builtin 'if' function. This function evaluates a predicate
 // and evaluates one of two expressions depending on the result of the predicate
 // the function returns the result of the expression that is evaluated, or
@@ -495,31 +521,36 @@ func GolspBuiltinIf(scope GolspScope, args []GolspObject) GolspObject {
 		}
 	} else { arguments[0] = args[0] }
 
-	condObj := arguments[0]
-	cond := false
-
-	if condObj.Type == GolspObjectTypeFunction { cond = true }
-	if condObj.Type == GolspObjectTypeList { cond = len(condObj.Elements) > 0 }
-	if condObj.Type == GolspObjectTypeLiteral {
-		if condObj.Value.Type == STNodeTypeStringLiteral {
-			cond = len(condObj.Value.Head) > 2
-		}
-
-		if condObj.Value.Type == STNodeTypeNumberLiteral {
-			n, _ := strconv.ParseFloat(condObj.Value.Head, 64)
-			cond = n != 0
-		}
-
-		if condObj.Value.Head == UNDEFINED { cond = false }
-	}
-
-	if cond {
+	if objectToBoolean(arguments[0]) {
 		if len(arguments) > 1 { return arguments[1] }
 		if len(args) > 1 { return EvalArgs(scope, args[1:2])[0] }
 	}
 
 	if len(arguments) > 2 { return arguments[2] }
 	if len(args) > 2 { return EvalArgs(scope, args[2:3])[0] }
+
+	return Builtins.Identifiers[UNDEFINED]
+}
+
+// GolspBuiltinWhen: the builtin 'when' function. This function takes a set of predicate-body
+// pairs (expressed as zipped expressions), evaluates the predicates one by one and evaluates
+// a 'body' when it reaches a predicate that is true.
+// this function returns the result of the body expression that is evaluated, or UNDEFINED
+func GolspBuiltinWhen(scope GolspScope, args []GolspObject) GolspObject {
+	for _, arg := range args {
+		if arg.Type != GolspObjectTypeBuiltinArgument {
+			return Builtins.Identifiers[UNDEFINED]
+		}
+	}
+
+	scp := MakeScope(&scope)
+	for _, arg := range args {
+		obj := Eval(scp, arg.Value)
+		if objectToBoolean(obj) {
+			if arg.Value.Zip == nil { return Builtins.Identifiers[UNDEFINED] }
+			return Eval(scp, *arg.Value.Zip)
+		}
+	}
 
 	return Builtins.Identifiers[UNDEFINED]
 }
