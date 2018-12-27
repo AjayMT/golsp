@@ -62,10 +62,29 @@ func MakeST(tokens []string) STNode {
 // and a list of remaining unparsed tokens
 func makeST(delim string, tokens []string) ([]STNode, []string) {
 	nodes := make([]STNode, 0, len(tokens))
+	newline := false
+	prevlength := 0
 	i := 0
 
 	for ; i < len(tokens); i++ {
 		if tokens[i] == TokenDelimiters[delim] { return nodes, tokens[i + 1:] }
+
+		if tokens[i] == "\n" {
+			delimtype := TokenDelimiterTypes[delim]
+			if newline && (len(nodes) - prevlength) > 1 &&
+				delimtype != STNodeTypeMap && delimtype != STNodeTypeList {
+				node := STNode{
+					Type: STNodeTypeExpression,
+					Children: make([]STNode, len(nodes[prevlength:])),
+				}
+				copy(node.Children, nodes[prevlength:])
+				nodes = nodes[:prevlength]
+				nodes = append(nodes, node)
+			}
+			newline = true
+			prevlength = len(nodes)
+			continue
+		}
 
 		current := STNode{
 			Head: tokens[i],
@@ -218,10 +237,21 @@ func Tokenize(input string) []string {
 	input = strings.TrimSpace(input)
 	runes := []rune(input)
 	token := ""
-	tokens := []string{token}
+	tokens := []string{token, "\n"}
 
 	for i := 0; i < len(runes); i++ {
 		r := runes[i]
+
+		if r == '\n' {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
+
+			tokens = append(tokens, "\n")
+			continue
+		}
+
 		_, literal := LiteralDelimiters[string(r)]
 		if literal {
 			if len(token) > 0 {
@@ -275,7 +305,7 @@ func Tokenize(input string) []string {
 	}
 
 	if len(token) > 0 { tokens = append(tokens, token) }
-	tokens = append(tokens, "")
+	tokens = append(tokens, "\n", "")
 
 	return tokens
 }
