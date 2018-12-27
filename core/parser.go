@@ -7,6 +7,7 @@ import (
 	"strings"
 	"strconv"
 	"unicode"
+	"fmt"
 )
 
 type OperatorType int
@@ -92,9 +93,12 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 		}
 
 		// check if current token is a number literal
-		_, err := strconv.ParseFloat(current.Head, 64)
+		num, err := strconv.ParseFloat(current.Head, 64)
 		if err == nil {
 			current.Type = STNodeTypeNumberLiteral
+			if float64(int(num)) == num {
+				current.Head = strconv.Itoa(int(num))
+			} else { current.Head = fmt.Sprintf("%g", num) }
 			nodes = append(nodes, current)
 			continue
 		}

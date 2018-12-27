@@ -18,22 +18,6 @@ import (
 var Builtins = GolspScope{}
 var WaitGroup sync.WaitGroup
 
-// sliceToGolspList: convert a slice of strings into a Golsp list of strings,
-// used to expose command-line arguments to Golsp programs
-// `slice`: the slice of strings
-// this function returns the produced GolspObject
-func sliceToGolspList(slice []string) GolspObject {
-	object := GolspObject{
-		Type: GolspObjectTypeList,
-		Elements: make([]GolspObject, len(slice)),
-	}
-	for i, str := range slice {
-		object.Elements[i] = GolspStringObject(str)
-	}
-
-	return object
-}
-
 // InitializeBuiltins: Initialize the default builtin scope ('Builtins')
 // with builtin identifiers
 func InitializeBuiltins(dirname string, filename string, args []string) {
@@ -41,7 +25,7 @@ func InitializeBuiltins(dirname string, filename string, args []string) {
 		UNDEFINED: GolspUndefinedObject(),
 		DIRNAME: GolspStringObject(dirname),
 		FILENAME: GolspStringObject(filename),
-		ARGS: sliceToGolspList(args),
+		ARGS: GolspListObject(args),
 
 		"=": GolspBuiltinFunctionObject(GolspBuiltinEquals),
 		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),

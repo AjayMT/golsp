@@ -1,4 +1,6 @@
 
-[= types [require "stdlib/types/types.so"]]
+[= types [require "stdlib/types.golsp"]]
 
-[printf "%v %v\n" [[types "isString"] "hello"] [[types "isString"] 2.0]]
+[printf "%v %v %v\n" [[types "isString"] "hello"] [[types "isString"] 2.0] [[types "isNumber"] 3.1]]
+[printf "%v %v %v\n" [[types "isMap"] types] [[types "isList"] [types types...]] [[types "isFunction"] [types "isFunction"]]]
+[printf "%v %v\n" [[types "isNumber"] "test"] [[types "isList"] types]]

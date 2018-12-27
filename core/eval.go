@@ -207,7 +207,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 		if list.Type == GolspObjectTypeList { return list.Elements[index] }
 
 		liststr := []rune(list.Value.Head[1:listlen + 1])
-		str := fmt.Sprintf("\"%v\"", string(liststr[index:index + 1]))
+		str := fmt.Sprintf("\"%s\"", string(liststr[index:index + 1]))
 
 		return GolspObject{
 			Type: GolspObjectTypeLiteral,
@@ -252,7 +252,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 		if list.Type == GolspObjectTypeLiteral {
 			slice.Value = STNode{
 				Type: STNodeTypeStringLiteral,
-				Head: fmt.Sprintf("\"%v\"", string(slicestr)),
+				Head: fmt.Sprintf("\"%s\"", string(slicestr)),
 			}
 		}
 
@@ -273,7 +273,7 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if list.Type == GolspObjectTypeLiteral {
 		slice.Value = STNode{
 			Type: STNodeTypeStringLiteral,
-			Head: fmt.Sprintf("\"%v\"", string(slicestr)),
+			Head: fmt.Sprintf("\"%s\"", string(slicestr)),
 		}
 	}
 
@@ -336,7 +336,7 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 			Type: GolspObjectTypeLiteral,
 			Value: STNode{
 				Type: STNodeTypeStringLiteral,
-				Head: fmt.Sprintf("\"%v\"", string(r)),
+				Head: fmt.Sprintf("\"%s\"", string(r)),
 			},
 		}
 	}

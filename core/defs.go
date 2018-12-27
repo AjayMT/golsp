@@ -117,7 +117,7 @@ func GolspStringObject(str string) GolspObject {
 	return GolspObject{
 		Type: GolspObjectTypeLiteral,
 		Value: STNode{
-			Head: fmt.Sprintf("\"%v\"", str),
+			Head: fmt.Sprintf("\"%s\"", str),
 			Type: STNodeTypeStringLiteral,
 		},
 	}
@@ -130,7 +130,7 @@ func GolspNumberObject(num float64) GolspObject {
 	var head string
 	if float64(int(num)) == num {
 		head = strconv.Itoa(int(num))
-	} else { head = fmt.Sprintf("%v", num) }
+	} else { head = fmt.Sprintf("%g", num) }
 
 	return GolspObject{
 		Type: GolspObjectTypeLiteral,
@@ -139,6 +139,42 @@ func GolspNumberObject(num float64) GolspObject {
 			Type: STNodeTypeNumberLiteral,
 		},
 	}
+}
+
+// GolspMapObject: Produce a Golsp map object from a map of strings
+// to GolspObjects. This function cannot produce maps that bind numbers
+// to objects
+// `gomap`: the map
+// this function returns the produced GolspObject
+func GolspMapObject(gomap map[string]GolspObject) GolspObject {
+	object := GolspObject{
+		Type: GolspObjectTypeMap,
+		Map: make(map[string]GolspObject),
+		MapKeys: make([]GolspObject, 0, len(gomap)),
+	}
+	for k, v := range gomap {
+		strobj := GolspStringObject(k)
+		object.Map[strobj.Value.Head] = v
+		object.MapKeys = append(object.MapKeys, strobj)
+	}
+
+	return object
+}
+
+// GolspListObject: Produce a Golsp list object from a slice of strings.
+// This function cannot produce lists that contain non-string objects
+// `slice`: the slice
+// this function returns the produced GolspObject
+func GolspListObject(slice []string) GolspObject {
+	object := GolspObject{
+		Type: GolspObjectTypeList,
+		Elements: make([]GolspObject, len(slice)),
+	}
+	for i, str := range slice {
+		object.Elements[i] = GolspStringObject(str)
+	}
+
+	return object
 }
 
 // /GolspObject constructors
