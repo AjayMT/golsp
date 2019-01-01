@@ -3,8 +3,8 @@ package main
 
 import g "github.com/ajaymt/golsp/core"
 
-func typeCheck(objectType g.GolspObjectType, nodeType g.STNodeType) g.GolspObject {
-	fn := func (scope g.GolspScope, args []g.GolspObject) g.GolspObject {
+func typeCheck(objectType g.GolspObjectType, nodeType g.STNodeType) g.GolspBuiltinFunction {
+	return func (scope g.GolspScope, args []g.GolspObject) g.GolspObject {
 		arguments := g.EvalArgs(scope, args)
 		if len(arguments) < 1 {
 			return g.Builtins.Identifiers[g.UNDEFINED]
@@ -18,14 +18,17 @@ func typeCheck(objectType g.GolspObjectType, nodeType g.STNodeType) g.GolspObjec
 
 		return g.GolspNumberObject(1.0)
 	}
-
-	return g.GolspBuiltinFunctionObject(fn)
 }
 
 var Exports = g.GolspMapObject(map[string]g.GolspObject{
-	"isString": typeCheck(g.GolspObjectTypeLiteral, g.STNodeTypeStringLiteral),
-	"isNumber": typeCheck(g.GolspObjectTypeLiteral, g.STNodeTypeNumberLiteral),
-	"isFunction": typeCheck(g.GolspObjectTypeFunction, g.STNodeTypeIdentifier),
-	"isList": typeCheck(g.GolspObjectTypeList, g.STNodeTypeIdentifier),
-	"isMap": typeCheck(g.GolspObjectTypeMap, g.STNodeTypeIdentifier),
+	"isString": g.GolspBuiltinFunctionObject("isString",
+		typeCheck(g.GolspObjectTypeLiteral, g.STNodeTypeStringLiteral)),
+	"isNumber": g.GolspBuiltinFunctionObject("isNumber",
+		typeCheck(g.GolspObjectTypeLiteral, g.STNodeTypeNumberLiteral)),
+	"isFunction": g.GolspBuiltinFunctionObject("isFunction",
+		typeCheck(g.GolspObjectTypeFunction, g.STNodeTypeIdentifier)),
+	"isList": g.GolspBuiltinFunctionObject("isList",
+		typeCheck(g.GolspObjectTypeList, g.STNodeTypeIdentifier)),
+	"isMap": g.GolspBuiltinFunctionObject("isMap",
+		typeCheck(g.GolspObjectTypeMap, g.STNodeTypeIdentifier)),
 })

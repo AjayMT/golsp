@@ -45,13 +45,14 @@ type GolspScope struct {
 
 // /GolspScope
 
-// GolspFunction: A Golsp function object that cantains a list of patterns
+// GolspFunction: A Golsp function object that contains a name, list of patterns
 // for which it is defined and an expression (i.e function body) for each
 // pattern. If it is a builtin function (i.e implemented in Go), it contains a
 // pointer to a Go function with a specific signature
 
 type GolspBuiltinFunction func(GolspScope, []GolspObject) GolspObject
 type GolspFunction struct {
+	Name string
 	FunctionPatterns [][]STNode
 	FunctionBodies []STNode
 	BuiltinFunc GolspBuiltinFunction
@@ -89,12 +90,13 @@ type GolspObject struct {
 
 // GolspBuiltinFunctionObject: Produce a Golsp function object from a
 // GolspBuiltinFunction-type function
+// `name`: the name of the function
 // `fn`: the builtin function
 // this function returns the GolspObject containing the builtin function
-func GolspBuiltinFunctionObject(fn GolspBuiltinFunction) GolspObject {
+func GolspBuiltinFunctionObject(name string, fn GolspBuiltinFunction) GolspObject {
 	return GolspObject{
 		Type: GolspObjectTypeFunction,
-		Function: GolspFunction{BuiltinFunc: fn},
+		Function: GolspFunction{Name: name, BuiltinFunc: fn},
 	}
 }
 

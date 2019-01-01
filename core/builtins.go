@@ -27,17 +27,17 @@ func InitializeBuiltins(dirname string, filename string, args []string) {
 		FILENAME: GolspStringObject(filename),
 		ARGS: GolspListObject(args),
 
-		"def": GolspBuiltinFunctionObject(GolspBuiltinDef),
-		"const": GolspBuiltinFunctionObject(GolspBuiltinConst),
-		"lambda": GolspBuiltinFunctionObject(GolspBuiltinLambda),
-		"require": GolspBuiltinFunctionObject(GolspBuiltinRequire),
-		"if": GolspBuiltinFunctionObject(GolspBuiltinIf),
-		"when": GolspBuiltinFunctionObject(GolspBuiltinWhen),
-		"do": GolspBuiltinFunctionObject(GolspBuiltinDo),
-		"go": GolspBuiltinFunctionObject(GolspBuiltinGo),
-		"sleep": GolspBuiltinFunctionObject(GolspBuiltinSleep),
-		"sprintf": GolspBuiltinFunctionObject(GolspBuiltinSprintf),
-		"printf": GolspBuiltinFunctionObject(GolspBuiltinPrintf),
+		"def": GolspBuiltinFunctionObject("def", GolspBuiltinDef),
+		"const": GolspBuiltinFunctionObject("const", GolspBuiltinConst),
+		"lambda": GolspBuiltinFunctionObject("lambda", GolspBuiltinLambda),
+		"require": GolspBuiltinFunctionObject("require", GolspBuiltinRequire),
+		"if": GolspBuiltinFunctionObject("if", GolspBuiltinIf),
+		"when": GolspBuiltinFunctionObject("when", GolspBuiltinWhen),
+		"do": GolspBuiltinFunctionObject("do", GolspBuiltinDo),
+		"go": GolspBuiltinFunctionObject("go", GolspBuiltinGo),
+		"sleep": GolspBuiltinFunctionObject("sleep", GolspBuiltinSleep),
+		"sprintf": GolspBuiltinFunctionObject("sprintf", GolspBuiltinSprintf),
+		"printf": GolspBuiltinFunctionObject("printf", GolspBuiltinPrintf),
 
 		"+": GolspBuiltinMathFunction("+"),
 		"-": GolspBuiltinMathFunction("-"),
@@ -155,8 +155,9 @@ func assign(scope GolspScope, arguments []GolspObject, constant bool) GolspObjec
 
 		// if the symbol is an identifier, the value is evaluated immediately
 		// and symbol is bound to it
-		valuescope := MakeScope(&scope)
-		scope.Identifiers[symbol.Head] = Eval(valuescope, value)
+		obj := Eval(MakeScope(&scope), value)
+		if obj.Type == GolspObjectTypeFunction { obj.Function.Name = symbol.Head }
+		scope.Identifiers[symbol.Head] = obj
 		if constant { scope.Constants[symbol.Head] = true }
 		return scope.Identifiers[symbol.Head]
 	}
@@ -208,6 +209,7 @@ func assign(scope GolspScope, arguments []GolspObject, constant bool) GolspObjec
 	}
 
 	newfn := GolspFunction{
+		Name: symbol.Head,
 		FunctionPatterns: append(scope.Identifiers[symbol.Head].Function.FunctionPatterns, pattern),
 		FunctionBodies: append(scope.Identifiers[symbol.Head].Function.FunctionBodies, value),
 	}
@@ -350,7 +352,7 @@ func GolspBuiltinMathFunction(op string) GolspObject {
 		return GolspNumberObject(result)
 	}
 
-	return GolspBuiltinFunctionObject(fn)
+	return GolspBuiltinFunctionObject(op, fn)
 }
 
 // formatStr: Format a Go-style format string with a set of GolspObject arguments
@@ -361,7 +363,7 @@ func formatStr(text string, objects []GolspObject) string {
 	args := make([]interface{}, len(objects))
 	for i, v := range objects {
 		if v.Type == GolspObjectTypeFunction {
-			args[i] = "<function>"
+			args[i] = fmt.Sprintf("<function:%v>", v.Function.Name)
 			continue
 		}
 
@@ -633,7 +635,7 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 		return GolspNumberObject(float64(resultint))
 	}
 
-	return GolspBuiltinFunctionObject(fn)
+	return GolspBuiltinFunctionObject(op, fn)
 }
 
 // EvalArgs: evaluate a list of arguments passed to builtin functions,

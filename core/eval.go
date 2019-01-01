@@ -132,6 +132,7 @@ func MakeScope(parent *GolspScope) GolspScope {
 // this function returns a copy of fn
 func copyFunction(fn GolspFunction) GolspFunction {
 	fncopy := GolspFunction{
+		Name: fn.Name,
 		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
 		FunctionBodies: make([]STNode, len(fn.FunctionBodies)),
 	}
