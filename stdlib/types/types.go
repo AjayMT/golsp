@@ -1,7 +1,10 @@
 
 package main
 
-import g "github.com/ajaymt/golsp/core"
+import (
+	"strconv"
+	g "github.com/ajaymt/golsp/core"
+)
 
 func typeCheck(objectType g.GolspObjectType, nodeType g.STNodeType) g.GolspBuiltinFunction {
 	return func (scope g.GolspScope, args []g.GolspObject) g.GolspObject {
@@ -20,6 +23,15 @@ func typeCheck(objectType g.GolspObjectType, nodeType g.STNodeType) g.GolspBuilt
 	}
 }
 
+func parseNumber(scope g.GolspScope, args []g.GolspObject) g.GolspObject {
+	arguments := g.EvalArgs(scope, args)
+	str := arguments[0].Value.Head
+	num, err := strconv.ParseFloat(str[1:len(str) - 1], 64)
+	if err != nil { return g.Builtins.Identifiers[g.UNDEFINED] }
+
+	return g.GolspNumberObject(num)
+}
+
 var Exports = g.GolspMapObject(map[string]g.GolspObject{
 	"isString": g.GolspBuiltinFunctionObject("isString",
 		typeCheck(g.GolspObjectTypeLiteral, g.STNodeTypeStringLiteral)),
@@ -31,4 +43,6 @@ var Exports = g.GolspMapObject(map[string]g.GolspObject{
 		typeCheck(g.GolspObjectTypeList, g.STNodeTypeIdentifier)),
 	"isMap": g.GolspBuiltinFunctionObject("isMap",
 		typeCheck(g.GolspObjectTypeMap, g.STNodeTypeIdentifier)),
+
+	"parseNumber": g.GolspBuiltinFunctionObject("parseNumber", parseNumber),
 })

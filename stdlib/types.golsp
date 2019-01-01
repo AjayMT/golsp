@@ -1,2 +1,9 @@
 
-[require "./types/types.so"]
+const base [require "./types/types.so"]
+const [parseNumber x] [when [base.isString x]: [base.parseNumber x] [base.isNumber x]: x]
+
+# exports
+(
+    base... : [base base...]...
+    "parseNumber": parseNumber
+)

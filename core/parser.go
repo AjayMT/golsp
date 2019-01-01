@@ -62,6 +62,10 @@ func MakeST(tokens []string) STNode {
 // and a list of remaining unparsed tokens
 func makeST(delim string, tokens []string) ([]STNode, []string) {
 	nodes := make([]STNode, 0, len(tokens))
+	zip := false
+	dot := false
+	var prev *STNode
+	var current STNode
 	newline := false
 	prevlength := 0
 	i := 0
@@ -79,14 +83,14 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 				}
 				copy(node.Children, nodes[prevlength:])
 				nodes = nodes[:prevlength]
-				nodes = append(nodes, node)
+				nodes, prev, zip, dot = appendNode(nodes, node, prev, zip, dot)
 			}
 			newline = true
 			prevlength = len(nodes)
 			continue
 		}
 
-		current := STNode{
+		current = STNode{
 			Head: tokens[i],
 			Type: STNodeTypeIdentifier,
 			Children: make([]STNode, 0),
@@ -101,7 +105,7 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 			current.Children, newtokens = makeST(current.Head, tokens[i + 1:])
 			i = -1
 			tokens = newtokens
-			nodes = append(nodes, current)
+			nodes, prev, zip, dot = appendNode(nodes, current, prev, zip, dot)
 			continue
 		}
 
@@ -109,7 +113,7 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 		literaltype, isLiteral := LiteralDelimiterTypes[string(current.Head[0])]
 		if isLiteral {
 			current.Type = literaltype
-			nodes = append(nodes, current)
+			nodes, prev, zip, dot = appendNode(nodes, current, prev, zip, dot)
 			continue
 		}
 
@@ -120,41 +124,58 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 			if float64(int(num)) == num {
 				current.Head = strconv.Itoa(int(num))
 			} else { current.Head = fmt.Sprintf("%g", num) }
-			nodes = append(nodes, current)
+			nodes, prev, zip, dot = appendNode(nodes, current, prev, zip, dot)
 			continue
 		}
 
 		// check if current token is an operator
 		optype, isOperator := OperatorTypes[current.Head]
 		if isOperator && len(nodes) > 0 {
-			if optype == OperatorTypeSpread {
-				nodes[len(nodes) - 1].Spread = true
-				continue
+			switch optype {
+			case OperatorTypeSpread: prev.Spread = true
+			case OperatorTypeZip: zip = true
+			case OperatorTypeDot: dot = true
 			}
-
-			// zip and dot operators have to be parsed recursively
-			// this is a very awkward solution since I cannot actually parse
-			// infix operators properly -- ideally the operator would be a
-			// node with a left and right child
-			nextnodes, nexttokens := makeST(delim, tokens[i + 1:])
-			if len(nextnodes) > 0 {
-				if optype == OperatorTypeZip {
-					nodes[len(nodes) - 1].Zip = &nextnodes[0]
-				} else {
-					nodes[len(nodes) - 1].Dot = &nextnodes[0]
-				}
-				nodes = append(nodes, nextnodes[1:]...)
-				return nodes, nexttokens
-			}
-
 			continue
 		}
 
 		// current token must be an identifier
-		nodes = append(nodes, current)
+		nodes, prev, zip, dot = appendNode(nodes, current, prev, zip, dot)
 	}
 
 	return nodes, tokens[i:]
+}
+
+// appendNode: append a parsed node to a list of parsed nodes
+// `nodes`: the list of parsed nodes
+// `node`: the parsed node to append to the list
+// `prev`: a pointer to the node that was last parsed and appended
+// `zip`: whether a zip operator precedes the current node
+// `dot`: whether a dot operator precedes the current node
+// this function returns the new list of nodes, a pointer to the
+// appended node, and values for both of the zip and dot flags
+// this function always returns false for zip and dot -- i could manually
+// reset zip and dot every time i call appendNode (see makeST), but this looks nicer
+func appendNode(nodes []STNode, node STNode,
+	prev *STNode, zip bool, dot bool) ([]STNode, *STNode, bool, bool) {
+	var addr *STNode
+
+	if zip || dot {
+		if prev != nil {
+			if zip {
+				prev.Zip = &node
+				addr = prev.Zip
+			} else {
+				prev.Dot = &node
+				addr = prev.Dot
+			}
+		}
+	} else {
+		nodes = append(nodes, node)
+		addr = &nodes[len(nodes) - 1]
+	}
+
+	return nodes, addr, false, false
 }
 
 // pruneComments: remove all comment nodes from a syntax tree

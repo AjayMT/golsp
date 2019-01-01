@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	golsp "github.com/ajaymt/golsp/core"
+	// "fmt"
 )
 
 func main() {
@@ -28,5 +29,6 @@ func main() {
 	}
 
 	input, _ := ioutil.ReadAll(file)
+	// fmt.Println(PrintST(golsp.MakeST(golsp.Tokenize(string(input)))))
 	golsp.Run(dirname, filename, args, string(input))
 }

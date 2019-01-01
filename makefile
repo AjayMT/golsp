@@ -1,6 +1,7 @@
 
 golsp: *.go core/*.go stdlib/**/*
 	make -C stdlib/types
+	make -C stdlib/os
 	go build -o golsp *.go
 
 .PHONY: clean
