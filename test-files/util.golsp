@@ -1,0 +1,22 @@
+
+const _ [require "stdlib/util.golsp"]
+
+const list [_.range 11]
+
+printf "%v\n" [_.range 5 15 2]
+printf "%v\n" [_.range 20 1 -3]
+
+printf "%v\n" [_.filter [lambda [x] [== [% x 2] 0]] list]
+printf "%v\n" [_.map [lambda [x] [* x x]] list]
+
+def [double x] [* x 2]
+def [square x] [* x x]
+def [incr x] [+ x 1]
+
+printf "%v\n" [_.compose 12 { square double incr }]
+printf "%v\n" [_.compose 12 square double incr]
+printf "%v\n" [_.compose
+  list
+  { _.filter [lambda [x] [== [% x 2] 0]] }
+  { _.map square }
+]

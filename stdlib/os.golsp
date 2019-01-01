@@ -1,0 +1,10 @@
+
+const base [require "./os/os.so"]
+const types [require "./types.golsp"]
+
+const [exit n] [when [types.isNumber n]: [base.exit n]]
+
+# exports
+(
+    "exit": exit
+)

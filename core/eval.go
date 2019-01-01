@@ -68,32 +68,45 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 // `fn`: the function whose patterns to check
 // `arguments`: the list of arguments to match to a pattern
 // this function returns the index of the best-matching pattern in function's
-// list of patterns
-func matchPatterns(fn GolspFunction, arguments []GolspObject) int {
+// list of patterns, and whether a matching pattern was found
+func matchPatterns(fn GolspFunction, arguments []GolspObject) (int, bool) {
 	patterns := fn.FunctionPatterns
-	bestmatchscore := -1
-	bestmatchindex := -1
+	bestscore := 0
+	bestdiff := -1
+	matchindex := 0
+	found := false
 
 	for i, p := range patterns {
-		score := -1
-		minlen := int(math.Min(float64(len(p)), float64(len(arguments))))
+		score := 0
+		diff := 0
+		minlen := len(p)
+		if len(p) > len(arguments) {
+			diff = len(p) - len(arguments)
+			minlen = len(arguments)
+		}
 
-		if len(p) == 0 { score = 0 }
+		if len(p) == 0 { found = true }
 
 		for j := 0; j < minlen; j++ {
 			if comparePatternNode(p[j], arguments[j]) {
-				if score == -1 { score = 0 }
+				found = true
 				score++
+			}
+			if p[j].Spread {
+				score += len(arguments) - 1 - j
+				break
 			}
 		}
 
-		if score > bestmatchscore {
-			bestmatchscore = score
-			bestmatchindex = i
+		if bestdiff == -1 { bestdiff = diff }
+		if score > bestscore || (score == bestscore && diff < bestdiff) {
+			matchindex = i
 		}
+		if diff < bestdiff { bestdiff = diff }
+		if score > bestscore { bestscore = score }
 	}
 
-	return bestmatchindex
+	return matchindex, found
 }
 
 // LookupIdentifier: lookup an identifier within a particular scope
@@ -634,8 +647,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		}
 	}
 
-	patternindex := matchPatterns(fn, argobjects)
-	if patternindex == -1 { return Builtins.Identifiers[UNDEFINED] }
+	patternindex, patternfound := matchPatterns(fn, argobjects)
+	if !patternfound { return Builtins.Identifiers[UNDEFINED] }
 	pattern := fn.FunctionPatterns[patternindex]
 
 	// calling a function with fewer arguments than required evaluates to UNDEFINED

@@ -51,8 +51,7 @@ var TokenDelimiterTypes = map[string]STNodeType{
 func MakeST(tokens []string) STNode {
 	root := STNode{Type: STNodeTypeScope}
 	root.Children, _ = makeST(tokens[0], tokens[1:])
-
-	return pruneComments(root)
+	return root
 }
 
 // makeST: recursively construct a syntax tree from a list of tokens
@@ -112,6 +111,8 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 		// check if current token is an extended literal i.e a string or comment
 		literaltype, isLiteral := LiteralDelimiterTypes[string(current.Head[0])]
 		if isLiteral {
+			if literaltype == STNodeTypeComment { continue }
+
 			current.Type = literaltype
 			nodes, prev, zip, dot = appendNode(nodes, current, prev, zip, dot)
 			continue
@@ -176,20 +177,6 @@ func appendNode(nodes []STNode, node STNode,
 	}
 
 	return nodes, addr, false, false
-}
-
-// pruneComments: remove all comment nodes from a syntax tree
-// `root`: root node of the syntax tree
-func pruneComments(root STNode) STNode {
-	newchildren := make([]STNode, 0, len(root.Children))
-	for _, child := range root.Children {
-		if child.Type == STNodeTypeComment { continue }
-		newchildren = append(newchildren, pruneComments(child))
-	}
-
-	root.Children = newchildren
-
-	return root
 }
 
 // parseLiteral: parse an extended literal, i.e a string or comment

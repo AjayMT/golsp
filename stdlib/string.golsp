@@ -1,0 +1,8 @@
+
+const _ [require "./util.golsp"]
+
+
+const [hasPrefix str prefix] [== [str 0 [len prefix]] prefix]
+
+
+const [hasSuffix str suffix] [== [str -1 [- 0 [len suffix]]] suffix]

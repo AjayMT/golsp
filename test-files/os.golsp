@@ -1,0 +1,5 @@
+
+const os [require "stdlib/os.golsp"]
+const types [require "stdlib/types.golsp"]
+
+os.exit [types.parseNumber [__args__ 0]]

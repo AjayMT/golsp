@@ -1,0 +1,57 @@
+
+const types [require "./types.golsp"]
+
+
+def [len {}] 0
+def [len { _ tail... }] [+ 1 [len tail]]
+def [len s] [when [types.isString s]: [len { s... }]]
+const len len
+
+
+def [map f {}] {}
+def [map f { head tail... }] { [f head] [map f tail]... }
+def [map f s] [when [types.isString s]: [map f { s... }]]
+const map map
+
+
+def [filter f {}] {}
+[def [filter f { head tail... }]
+  if [f head] { head [filter f tail]... } { [filter f tail]... }
+]
+def [filter f s] [when [types.isString s]: [filter f { s... }]]
+const filter filter
+
+
+[def [range begin end step]
+  [when
+    [== begin end]: {}
+    [* [< begin end] [< step 0]]: {}
+    [* [> begin end] [> step 0]]: {}
+    1: { begin [range [+ begin step] end step]... }
+  ]
+]
+[def [range begin end]
+  [when
+    [< end begin]: [range begin end -1]
+    1: [range begin end 1]
+  ]
+]
+def [range n] [range 0 n]
+const range range
+
+
+def [compose input {}] input
+def [compose input { head tail... }] [compose [head... input] tail]
+def [compose input functions...] [compose input functions]
+const compose compose
+
+# TODO foldl foldr
+
+# exports
+(
+  "len": len
+  "map": map
+  "filter": filter
+  "range": range
+  "compose": compose
+)
