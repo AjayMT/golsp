@@ -9,14 +9,14 @@ const len len
 
 
 def [map f {}] {}
-def [map f { head tail... }] { [f head] [map f tail]... }
+def [map f { head tail... }] { [f... head] [map f tail]... }
 def [map f s] [when [types.isString s]: [map f { s... }]]
 const map map
 
 
 def [filter f {}] {}
 [def [filter f { head tail... }]
-  if [f head] { head [filter f tail]... } { [filter f tail]... }
+  if [f... head] { head [filter f tail]... } { [filter f tail]... }
 ]
 def [filter f s] [when [types.isString s]: [filter f { s... }]]
 const filter filter

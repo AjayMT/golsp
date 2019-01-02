@@ -1,5 +1,5 @@
 
-const _ [require "stdlib/util.golsp"]
+const _ [require "stdlib/tools.golsp"]
 
 const list [_.range 11]
 
