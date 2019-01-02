@@ -344,7 +344,7 @@ golsp -      # read from stdin
 
 The CLI will eventually get better.
 
-## <a name="usage">❖</a> Contributing
+## <a name="contributing">❖</a> Contributing
 Yes please! I will merge your code as long as it is:
 - tested. A simple test will do -- I haven't written any comprehensive unit tests yet.
 - readable. I'm not very picky about style -- I just like to follow a consistent naming convention. But please indent with tabs and be generous with whitespace.
