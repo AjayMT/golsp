@@ -351,6 +351,7 @@ Yes please! I will merge your code as long as it is:
 - (reasonably) fast. Do not sacrifice a lot of generality and readability for speed, but don't write bubblesort either.
 
 Here are some things I haven't done yet:
+- implemented errors (syntax and semantic errors) or error handling (`stdlib/assert.golsp` is supposed to throw errors and halt the program when assertions fail)
 - written tests
 - finished the CLI
 - finished the builtin string formatter (see `formatStr` in `core/builtins.go`)
