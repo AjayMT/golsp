@@ -1,5 +1,6 @@
 
 # Golsp
+(pronounced "Go-lisp")
 ```python
 printf "Hello, world!\n"
 ```
