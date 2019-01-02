@@ -594,45 +594,43 @@ func GolspBuiltinComparisonFunction(op string) GolspObject {
 			return Builtins.Identifiers[UNDEFINED]
 		}
 
-		var value1 interface{}
-		var value2 interface{}
+		str1, str2 := "", ""
+		num1, num2 := 0.0, 0.0
 
 		if argtype == STNodeTypeStringLiteral {
-			value1 = arguments[0].Value.Head[1:len(arguments[0].Value.Head) - 1]
-			value2 = arguments[1].Value.Head[1:len(arguments[1].Value.Head) - 1]
+			str1 = arguments[0].Value.Head[1:len(arguments[0].Value.Head) - 1]
+			str2 = arguments[1].Value.Head[1:len(arguments[1].Value.Head) - 1]
 		} else {
-			value1, _ = strconv.ParseFloat(arguments[0].Value.Head, 64)
-			value2, _ = strconv.ParseFloat(arguments[1].Value.Head, 64)
+			num1, _ = strconv.ParseFloat(arguments[0].Value.Head, 64)
+			num2, _ = strconv.ParseFloat(arguments[1].Value.Head, 64)
 		}
 
-		resultint := 0
+		resultnum := 0.0
 		result := false
 		switch op {
 		case "==":
-			result = value1 == value2
+			result = num1 == num2
+			if argtype == STNodeTypeStringLiteral { result = str1 == str2 }
 		case "!=":
-			result = value1 != value2
+			result = num1 != num2
+			if argtype == STNodeTypeStringLiteral { result = str1 != str2 }
 		case ">":
-			if argtype == STNodeTypeStringLiteral {
-				result = value1.(string) > value2.(string)
-			} else { result = value1.(float64) > value2.(float64) }
+			result = num1 > num2
+			if argtype == STNodeTypeStringLiteral { result = str1 > str2 }
 		case "<":
-			if argtype == STNodeTypeStringLiteral {
-				result = value1.(string) < value2.(string)
-			} else { result = value1.(float64) < value2.(float64) }
+			result = num1 < num2
+			if argtype == STNodeTypeStringLiteral { result = str1 < str2 }
 		case ">=":
-			if argtype == STNodeTypeStringLiteral {
-				result = value1.(string) >= value2.(string)
-			} else { result = value1.(float64) >= value2.(float64) }
+			result = num1 >= num2
+			if argtype == STNodeTypeStringLiteral { result = str1 >= str2 }
 		case "<=":
-			if argtype == STNodeTypeStringLiteral {
-				result = value1.(string) <= value2.(string)
-			} else { result = value1.(float64) <= value2.(float64) }
+			result = num1 <= num2
+			if argtype == STNodeTypeStringLiteral { result = str1 <= str2 }
 		}
 
-		if result { resultint = 1 }
+		if result { resultnum = 1 }
 
-		return GolspNumberObject(float64(resultint))
+		return GolspNumberObject(resultnum)
 	}
 
 	return GolspBuiltinFunctionObject(op, fn)
