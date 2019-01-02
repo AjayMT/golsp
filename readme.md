@@ -240,12 +240,12 @@ def [count args...] [len args]
 count "a" "b" "c" 1 2 3 # => 6
 
 # patterns can also match against and extract data from maps
-def [greet? ( "name":name rest... )] [sprintf "Hello, %v!" name]
-def [greet? ( keys... )] "Please introduce yourself!"
-def [greet? _] "You're not a map!"
-greet? ( "profession":"chef" "name":"Gordon Ramsay" ) # => Hello, Gordon Ramsay!
-greet? ( "foo":"bar" ) # => Please introduce yourself!
-greet? 12 # => You're not a map!
+def [greet ( "name":name rest... )] [sprintf "Hello, %v!" name]
+def [greet ( keys... )] "Please introduce yourself!"
+def [greet _] "You're not a map!"
+greet ( "profession":"chef" "name":"Gordon Ramsay" ) # => Hello, Gordon Ramsay!
+greet ( "foo":"bar" ) # => Please introduce yourself!
+greet 12 # => You're not a map!
 ```
 
 Pattern matching works well with the builtin `when` function and `types` module to provide simple and flexible polymorphism:
@@ -329,10 +329,10 @@ Unfortunately, Golsp only supports Linux and macOS at the moment. This installat
 
 ```sh
 go get github.com/ajaymt/golsp
-cd $GOPATH/github.com/ajaymt/golsp
+cd $GOPATH/src/github.com/ajaymt/golsp
 make
 go install
-export GOLSPPATH="$GOPATH/github.com/ajaymt/golsp" # add this to your dotfile
+export GOLSPPATH="$GOPATH/src/github.com/ajaymt/golsp" # add this to your dotfile
 ```
 
 ## <a name="usage">❖</a> Usage
