@@ -8,7 +8,6 @@ import (
 	"strings"
 	"strconv"
 	"time"
-	"sync"
 	"path/filepath"
 	"io/ioutil"
 	"os"
@@ -16,7 +15,6 @@ import (
 )
 
 var Builtins = Scope{}
-var WaitGroup sync.WaitGroup
 
 // InitializeBuiltins: Initialize the default builtin scope ('Builtins')
 // with builtin identifiers
@@ -458,9 +456,9 @@ func BuiltinDo(scope Scope, arguments []Object) Object {
 // a series of statements within an enclosed, isolated scope
 // this function returns UNDEFINED
 func BuiltinGo(scope Scope, arguments []Object) Object {
-	WaitGroup.Add(1)
+	RuntimeWaitGroup().Add(1)
 	go func () {
-		defer WaitGroup.Done()
+		defer RuntimeWaitGroup().Done()
 		BuiltinDo(scope, arguments)
 	}()
 

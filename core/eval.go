@@ -7,7 +7,14 @@ import (
 	"math"
 	"strconv"
 	"fmt"
+	"sync"
 )
+
+// runtimeWaitGroup is the wait group used to wait for 'go' blocks to complete
+var runtimeWaitGroup sync.WaitGroup
+func RuntimeWaitGroup() *sync.WaitGroup {
+	return &runtimeWaitGroup
+}
 
 // comparePatternNode: Compare a node in a function pattern with an argument object
 // `pattern`: the pattern node
@@ -140,31 +147,31 @@ func MakeScope(parent *Scope) Scope {
 	return newscope
 }
 
-// copyFunction: Copy a Function struct
+// CopyFunction: Copy a Function struct
 // `fn`: the function to copy
 // this function returns a copy of fn
-func copyFunction(fn Function) Function {
+func CopyFunction(fn Function) Function {
 	fncopy := Function{
 		Name: fn.Name,
 		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
 		FunctionBodies: make([]STNode, len(fn.FunctionBodies)),
+		BuiltinFunc: fn.BuiltinFunc,
 	}
 	copy(fncopy.FunctionPatterns, fn.FunctionPatterns)
 	copy(fncopy.FunctionBodies, fn.FunctionBodies)
-	fncopy.BuiltinFunc = fn.BuiltinFunc
 
 	return fncopy
 }
 
-// copyObject: Copy an Object
+// CopyObject: Copy an Object
 // `object`: the object to copy
 // this function returns a copy of object. Note that it does not copy
 // object.Value since that property is never modified
-func copyObject(object Object) Object {
+func CopyObject(object Object) Object {
 	newobject := Object{
 		Type: object.Type,
 		Value: object.Value,
-		Function: copyFunction(object.Function),
+		Function: CopyFunction(object.Function),
 		Elements: make([]Object, len(object.Elements)),
 		MapKeys: make([]Object, len(object.MapKeys)),
 		Map: make(map[string]Object, len(object.Map)),
@@ -175,11 +182,11 @@ func copyObject(object Object) Object {
 		},
 	}
 
-	for k, o := range object.Scope.Identifiers { newobject.Scope.Identifiers[k] = copyObject(o) }
+	for k, o := range object.Scope.Identifiers { newobject.Scope.Identifiers[k] = CopyObject(o) }
 	for k, v := range object.Scope.Constants { newobject.Scope.Constants[k] = v }
-	for i, e := range object.Elements { newobject.Elements[i] = copyObject(e) }
-	for i, k := range object.MapKeys { newobject.MapKeys[i] = copyObject(k) }
-	for k, v := range object.Map { newobject.Map[k] = copyObject(v) }
+	for i, e := range object.Elements { newobject.Elements[i] = CopyObject(e) }
+	for i, k := range object.MapKeys { newobject.MapKeys[i] = CopyObject(k) }
+	for k, v := range object.Map { newobject.Map[k] = CopyObject(v) }
 
 	return newobject
 }
@@ -203,7 +210,7 @@ func IsolateScope(scope Scope) Scope {
 		for k, v := range parent.Constants { newscope.Constants[k] = v }
 	}
 	for k, o := range scope.Identifiers {
-		obj := copyObject(o)
+		obj := CopyObject(o)
 		obj.Scope.Parent = &newscope
 		newscope.Identifiers[k] = obj
 	}
@@ -212,11 +219,11 @@ func IsolateScope(scope Scope) Scope {
 	return newscope
 }
 
-// evalSlice: Evaluate a slice expression, i.e `[list begin end step]`
+// EvalSlice: Evaluate a slice expression, i.e `[list begin end step]`
 // `list`: the list or string that is sliced
 // `arguments`: the arguments passed in the expression
 // this function returns a slice of the list/string or UNDEFINED
-func evalSlice(list Object, arguments []Object) Object {
+func EvalSlice(list Object, arguments []Object) Object {
 	if len(arguments) == 0 { return list }
 
 	listlen := len(list.Elements)
@@ -306,11 +313,11 @@ func evalSlice(list Object, arguments []Object) Object {
 	return slice
 }
 
-// evalMap: Lookup key(s) in a map
+// EvalMap: Lookup key(s) in a map
 // `glmap`: the map object
 // `arguments`: the key or keys to look up
 // this function returns the object or list of objects that the key(s) map to
-func evalMap(glmap Object, arguments []Object) Object {
+func EvalMap(glmap Object, arguments []Object) Object {
 	if len(arguments) == 0 { return glmap }
 	if len (arguments) == 1 {
 		value, exists := glmap.Map[arguments[0].Value.Head]
@@ -479,7 +486,7 @@ func Eval(scope Scope, root STNode) Object {
 			}
 		}
 
-		return evalDot(copyObject(result), root)
+		return evalDot(CopyObject(result), root)
 	}
 
 	// string and number literals simply evaluate to themselves
@@ -611,10 +618,10 @@ func Eval(scope Scope, root STNode) Object {
 		}
 
 		if exprhead.Type == ObjectTypeMap {
-			return evalDot(evalMap(exprhead, argobjects), root)
+			return evalDot(EvalMap(exprhead, argobjects), root)
 		}
 
-		return evalDot(evalSlice(exprhead, argobjects), root)
+		return evalDot(EvalSlice(exprhead, argobjects), root)
 	}
 
 	// at this point the expression must be a function call
@@ -671,7 +678,7 @@ func Eval(scope Scope, root STNode) Object {
 func Run(dirname string, filename string, args []string, program string) Object {
 	InitializeBuiltins(dirname, filename, args)
 	result := Eval(Builtins, MakeST(Tokenize(program)))
-	defer WaitGroup.Wait()
+	defer RuntimeWaitGroup().Wait()
 
 	return result
 }
