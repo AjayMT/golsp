@@ -9,10 +9,10 @@ import (
 	. "github.com/ajaymt/golsp/core"
 )
 
-func PrintElements(list GolspObject) string {
+func PrintElements(list Object) string {
 	str := ""
 	for _, elem := range list.Elements {
-		if elem.Type == GolspObjectTypeList {
+		if elem.Type == ObjectTypeList {
 			str += "{ " + PrintElements(elem) + " }"
 		}
 

@@ -13,7 +13,7 @@ import (
 // `pattern`: the pattern node
 // `arg`: the argument to compare with the pattern
 // this function returns whether the argument matches the pattern node
-func comparePatternNode(pattern STNode, arg GolspObject) bool {
+func comparePatternNode(pattern STNode, arg Object) bool {
 	// identifiers i.e non-literal patterns match everything
 	if pattern.Type == STNodeTypeIdentifier { return true }
 
@@ -26,7 +26,7 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 	// map patterns match if all the specified keys and values match
 	// value-only matching i.e `[foo ( quux: "hello" )]` does not work yet
 	if pattern.Type == STNodeTypeMap {
-		if arg.Type != GolspObjectTypeMap { return false }
+		if arg.Type != ObjectTypeMap { return false }
 
 		for i, c := range pattern.Children {
 			if c.Spread && c.Type == STNodeTypeIdentifier {
@@ -48,7 +48,7 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 	// list patterns match if each of their elements match and the lists
 	// are of the same length, after accounting for spreading
 	if pattern.Type == STNodeTypeList {
-		if arg.Type != GolspObjectTypeList { return false }
+		if arg.Type != ObjectTypeList { return false }
 
 		for i, c := range pattern.Children {
 			if c.Spread && c.Type == STNodeTypeIdentifier {
@@ -69,7 +69,7 @@ func comparePatternNode(pattern STNode, arg GolspObject) bool {
 // `arguments`: the list of arguments to match to a pattern
 // this function returns the index of the best-matching pattern in function's
 // list of patterns, and whether a matching pattern was found
-func matchPatterns(fn GolspFunction, arguments []GolspObject) (int, bool) {
+func matchPatterns(fn Function, arguments []Object) (int, bool) {
 	patterns := fn.FunctionPatterns
 	bestscore := 0
 	bestdiff := -1
@@ -114,7 +114,7 @@ func matchPatterns(fn GolspFunction, arguments []GolspObject) (int, bool) {
 // `identifier`: the name of the identifier
 // this function returns the object corresponding to the identifier
 // or UNDEFINED
-func LookupIdentifier(scope GolspScope, identifier string) GolspObject {
+func LookupIdentifier(scope Scope, identifier string) Object {
 	obj, exists := scope.Identifiers[identifier]
 	if exists { return obj }
 
@@ -127,12 +127,12 @@ func LookupIdentifier(scope GolspScope, identifier string) GolspObject {
 
 // MakeScope: construct a new child scope that descends from a parent scope
 // `parent`: the parent scope
-// this function returns a new GolspScope object whose Parent points to
+// this function returns a new Scope struct whose Parent points to
 // parent
-func MakeScope(parent *GolspScope) GolspScope {
-	newscope := GolspScope{
+func MakeScope(parent *Scope) Scope {
+	newscope := Scope{
 		Parent: parent,
-		Identifiers: make(map[string]GolspObject),
+		Identifiers: make(map[string]Object),
 		Constants: make(map[string]bool, len(parent.Constants)),
 	}
 	for k, v := range parent.Constants { newscope.Constants[k] = v }
@@ -140,11 +140,11 @@ func MakeScope(parent *GolspScope) GolspScope {
 	return newscope
 }
 
-// copyFunction: Copy a GolspFunction object
+// copyFunction: Copy a Function struct
 // `fn`: the function to copy
 // this function returns a copy of fn
-func copyFunction(fn GolspFunction) GolspFunction {
-	fncopy := GolspFunction{
+func copyFunction(fn Function) Function {
+	fncopy := Function{
 		Name: fn.Name,
 		FunctionPatterns: make([][]STNode, len(fn.FunctionPatterns)),
 		FunctionBodies: make([]STNode, len(fn.FunctionBodies)),
@@ -156,21 +156,21 @@ func copyFunction(fn GolspFunction) GolspFunction {
 	return fncopy
 }
 
-// copyObject: Copy a GolspObject object
+// copyObject: Copy an Object
 // `object`: the object to copy
 // this function returns a copy of object. Note that it does not copy
 // object.Value since that property is never modified
-func copyObject(object GolspObject) GolspObject {
-	newobject := GolspObject{
+func copyObject(object Object) Object {
+	newobject := Object{
 		Type: object.Type,
 		Value: object.Value,
 		Function: copyFunction(object.Function),
-		Elements: make([]GolspObject, len(object.Elements)),
-		MapKeys: make([]GolspObject, len(object.MapKeys)),
-		Map: make(map[string]GolspObject, len(object.Map)),
-		Scope: GolspScope{
+		Elements: make([]Object, len(object.Elements)),
+		MapKeys: make([]Object, len(object.MapKeys)),
+		Map: make(map[string]Object, len(object.Map)),
+		Scope: Scope{
 			Parent: object.Scope.Parent,
-			Identifiers: make(map[string]GolspObject, len(object.Scope.Identifiers)),
+			Identifiers: make(map[string]Object, len(object.Scope.Identifiers)),
 			Constants: make(map[string]bool, len(object.Scope.Constants)),
 		},
 	}
@@ -185,13 +185,13 @@ func copyObject(object GolspObject) GolspObject {
 }
 
 // IsolateScope: 'Isolate' a scope object by copying all values from its parent
-// scopes into the scope object, effectively orphaning it and flattening its
+// scopes into the scope struct, effectively orphaning it and flattening its
 // inheritance tree
 // `scope`: the scope to isolate
 // this function returns the isolated scope
-func IsolateScope(scope GolspScope) GolspScope {
-	newscope := GolspScope{
-		Identifiers: make(map[string]GolspObject, len(scope.Identifiers)),
+func IsolateScope(scope Scope) Scope {
+	newscope := Scope{
+		Identifiers: make(map[string]Object, len(scope.Identifiers)),
 		Constants: make(map[string]bool, len(scope.Constants)),
 	}
 	if scope.Parent != nil {
@@ -216,11 +216,11 @@ func IsolateScope(scope GolspScope) GolspScope {
 // `list`: the list or string that is sliced
 // `arguments`: the arguments passed in the expression
 // this function returns a slice of the list/string or UNDEFINED
-func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
+func evalSlice(list Object, arguments []Object) Object {
 	if len(arguments) == 0 { return list }
 
 	listlen := len(list.Elements)
-	if list.Type == GolspObjectTypeLiteral { listlen = len(list.Value.Head) - 2 }
+	if list.Type == ObjectTypeLiteral { listlen = len(list.Value.Head) - 2 }
 
 	if len(arguments) == 1 {
 		indexf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
@@ -230,13 +230,13 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 			return Builtins.Identifiers[UNDEFINED]
 		}
 
-		if list.Type == GolspObjectTypeList { return list.Elements[index] }
+		if list.Type == ObjectTypeList { return list.Elements[index] }
 
 		liststr := []rune(list.Value.Head[1:listlen + 1])
 		str := fmt.Sprintf("\"%s\"", string(liststr[index:index + 1]))
 
-		return GolspObject{
-			Type: GolspObjectTypeLiteral,
+		return Object{
+			Type: ObjectTypeLiteral,
 			Value: STNode{
 				Type: STNodeTypeStringLiteral,
 				Head: str,
@@ -264,18 +264,18 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 	if start < 0 { start += listlen }
 	if end < 0 { end += listlen }
 
-	slice := GolspObject{
+	slice := Object{
 		Type: list.Type,
-		Elements: make([]GolspObject, 0, listlen),
+		Elements: make([]Object, 0, listlen),
 	}
 	slicestr := make([]rune, 0, listlen)
 	var liststr []rune
-	if list.Type == GolspObjectTypeLiteral {
+	if list.Type == ObjectTypeLiteral {
 		liststr = []rune(list.Value.Head[1:listlen + 1])
 	}
 
 	if start < 0 || start >= listlen {
-		if list.Type == GolspObjectTypeLiteral {
+		if list.Type == ObjectTypeLiteral {
 			slice.Value = STNode{
 				Type: STNodeTypeStringLiteral,
 				Head: fmt.Sprintf("\"%s\"", string(slicestr)),
@@ -289,14 +289,14 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 		if i >= listlen { break }
 		if i < 0 { break }
 
-		if slice.Type == GolspObjectTypeList {
+		if slice.Type == ObjectTypeList {
 			slice.Elements = append(slice.Elements, list.Elements[i])
 		} else {
 			slicestr = append(slicestr, liststr[i])
 		}
 	}
 
-	if list.Type == GolspObjectTypeLiteral {
+	if list.Type == ObjectTypeLiteral {
 		slice.Value = STNode{
 			Type: STNodeTypeStringLiteral,
 			Head: fmt.Sprintf("\"%s\"", string(slicestr)),
@@ -310,28 +310,28 @@ func evalSlice(list GolspObject, arguments []GolspObject) GolspObject {
 // `glmap`: the map object
 // `arguments`: the key or keys to look up
 // this function returns the object or list of objects that the key(s) map to
-func evalMap(glmap GolspObject, arguments []GolspObject) GolspObject {
+func evalMap(glmap Object, arguments []Object) Object {
 	if len(arguments) == 0 { return glmap }
 	if len (arguments) == 1 {
 		value, exists := glmap.Map[arguments[0].Value.Head]
-		if arguments[0].Type != GolspObjectTypeLiteral || !exists {
+		if arguments[0].Type != ObjectTypeLiteral || !exists {
 			return Builtins.Identifiers[UNDEFINED]
 		}
 		return value
 	}
 
-	values := make([]GolspObject, len(arguments))
+	values := make([]Object, len(arguments))
 	for i, arg := range arguments {
 		value, exists := glmap.Map[arg.Value.Head]
-		if arg.Type != GolspObjectTypeLiteral || !exists {
+		if arg.Type != ObjectTypeLiteral || !exists {
 			values[i] = Builtins.Identifiers[UNDEFINED]
 		} else {
 			values[i] = value
 		}
 	}
 
-	return GolspObject{
-		Type: GolspObjectTypeList,
+	return Object{
+		Type: ObjectTypeList,
 		Elements: values,
 	}
 }
@@ -339,27 +339,27 @@ func evalMap(glmap GolspObject, arguments []GolspObject) GolspObject {
 // SpreadNode: Apply the spread operator to a syntax tree node
 // `scope`: the scope within which the node is being spread
 // `node`: the node to spread
-// this function returns the list of GolspObjects that the node spreads to
-func SpreadNode(scope GolspScope, node STNode) []GolspObject {
+// this function returns the list of Objects that the node spreads to
+func SpreadNode(scope Scope, node STNode) []Object {
 	nodescope := MakeScope(&scope)
 	obj := Eval(nodescope, node)
-	if obj.Value.Head == UNDEFINED { return make([]GolspObject, 0) }
+	if obj.Value.Head == UNDEFINED { return make([]Object, 0) }
 
-	if obj.Type != GolspObjectTypeList &&
-		obj.Type != GolspObjectTypeMap &&
+	if obj.Type != ObjectTypeList &&
+		obj.Type != ObjectTypeMap &&
 		obj.Value.Type != STNodeTypeStringLiteral {
-		return []GolspObject{obj}
+		return []Object{obj}
 	}
 
-	if obj.Type == GolspObjectTypeList { return obj.Elements }
-	if obj.Type == GolspObjectTypeMap { return obj.MapKeys }
+	if obj.Type == ObjectTypeList { return obj.Elements }
+	if obj.Type == ObjectTypeMap { return obj.MapKeys }
 
 	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
-	objects := make([]GolspObject, len(str))
+	objects := make([]Object, len(str))
 
 	for i, r := range str {
-		objects[i] = GolspObject{
-			Type: GolspObjectTypeLiteral,
+		objects[i] = Object{
+			Type: ObjectTypeLiteral,
 			Value: STNode{
 				Type: STNodeTypeStringLiteral,
 				Head: fmt.Sprintf("\"%s\"", string(r)),
@@ -377,7 +377,7 @@ func SpreadNode(scope GolspScope, node STNode) []GolspObject {
 // to identifiers
 // `argobjects`: the arguments passed to the function that will be bound to
 // identifiers
-func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObject) {
+func bindArguments(exprhead Object, pattern []STNode, argobjects []Object) {
 	for i, symbol := range pattern {
 		if symbol.Type == STNodeTypeStringLiteral || symbol.Type == STNodeTypeNumberLiteral {
 			continue
@@ -385,8 +385,8 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 
 		if symbol.Type == STNodeTypeIdentifier {
 			if symbol.Spread {
-				exprhead.Scope.Identifiers[symbol.Head] = GolspObject{
-					Type: GolspObjectTypeList,
+				exprhead.Scope.Identifiers[symbol.Head] = Object{
+					Type: ObjectTypeList,
 					Elements: argobjects[i:],
 				}
 				break
@@ -395,11 +395,11 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 			continue
 		}
 
-		if argobjects[i].Type == GolspObjectTypeList && symbol.Type == STNodeTypeList {
+		if argobjects[i].Type == ObjectTypeList && symbol.Type == STNodeTypeList {
 			bindArguments(exprhead, symbol.Children, argobjects[i].Elements)
 		}
 
-		if argobjects[i].Type == GolspObjectTypeMap && symbol.Type == STNodeTypeMap {
+		if argobjects[i].Type == ObjectTypeMap && symbol.Type == STNodeTypeMap {
 			// this is a giant mess. clean it up
 
 			mapped := make(map[string]bool)
@@ -416,12 +416,12 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 				value, exists := argobjects[i].Map[child.Head]
 				if !exists { continue }
 
-				bindArguments(exprhead, []STNode{*child.Zip}, []GolspObject{value})
+				bindArguments(exprhead, []STNode{*child.Zip}, []Object{value})
 				mapped[child.Head] = true
 			}
 
-			keys := make([]GolspObject, 0, len(argobjects[i].MapKeys))
-			values := make([]GolspObject, 0, len(argobjects[i].MapKeys))
+			keys := make([]Object, 0, len(argobjects[i].MapKeys))
+			values := make([]Object, 0, len(argobjects[i].MapKeys))
 			for _, key := range argobjects[i].MapKeys {
 				if !mapped[key.Value.Head] {
 					keys = append(keys, key)
@@ -446,9 +446,9 @@ func bindArguments(exprhead GolspObject, pattern []STNode, argobjects []GolspObj
 // `obj`: the (map) object
 // `root`: the syntax tree node associated with the dot operator
 // this function returns the value from the map object
-func evalDot(obj GolspObject, root STNode) GolspObject {
+func evalDot(obj Object, root STNode) Object {
 	if root.Dot == nil { return obj }
-	if obj.Type != GolspObjectTypeMap { return Builtins.Identifiers[UNDEFINED] }
+	if obj.Type != ObjectTypeMap { return Builtins.Identifiers[UNDEFINED] }
 	if root.Dot.Type != STNodeTypeIdentifier { return Builtins.Identifiers[UNDEFINED] }
 
 	key := fmt.Sprintf("\"%s\"", root.Dot.Head)
@@ -461,15 +461,15 @@ func evalDot(obj GolspObject, root STNode) GolspObject {
 // Eval: Evaluate a syntax tree node within a scope
 // `scope`: the scope within which to evaluate the node
 // `root`: the root node to evaluate
-// this function returns the result of evaluating the node as a GolspObject
-func Eval(scope GolspScope, root STNode) GolspObject {
+// this function returns the result of evaluating the node as an Object
+func Eval(scope Scope, root STNode) Object {
 	// root node is a scope -- it evaluates to the result of the last expression
 	// in the scope
 	// scope nodes are isolated from their parents to ensure that they do not
 	// cause side-effects, especially important for 'go' blocks
 	if root.Type == STNodeTypeScope {
 		newscope := IsolateScope(scope)
-		var result GolspObject
+		var result Object
 		for _, child := range root.Children {
 			if child.Spread {
 				spread := SpreadNode(newscope, child)
@@ -484,8 +484,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// string and number literals simply evaluate to themselves
 	if root.Type == STNodeTypeNumberLiteral || root.Type == STNodeTypeStringLiteral {
-		result := GolspObject{
-			Type: GolspObjectTypeLiteral,
+		result := Object{
+			Type: ObjectTypeLiteral,
 			Value: root,
 		}
 		return evalDot(result, root)
@@ -496,11 +496,11 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 		return evalDot(LookupIdentifier(scope, root.Head), root)
 	}
 
-	// 'list' type syntax tree nodes evaluate to 'list' type GolspObjects
+	// 'list' type syntax tree nodes evaluate to 'list' type Objects
 	// note that list elements are evaluated immediately, unlike quote expressions
 	// in Lisp
 	if root.Type == STNodeTypeList {
-		elements := make([]GolspObject, 0, len(root.Children))
+		elements := make([]Object, 0, len(root.Children))
 		for _, c := range root.Children {
 			if c.Spread {
 				elements = append(elements, SpreadNode(scope, c)...)
@@ -509,8 +509,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		result := GolspObject{
-			Type: GolspObjectTypeList,
+		result := Object{
+			Type: ObjectTypeList,
 			Elements: elements,
 		}
 		return evalDot(result, root)
@@ -518,31 +518,31 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// 'map' type syntax tree nodes evaluate to maps
 	if root.Type == STNodeTypeMap {
-		obj := GolspObject{
-			Type: GolspObjectTypeMap,
-			Map: make(map[string]GolspObject, len(root.Children)),
-			MapKeys: make([]GolspObject, 0, len(root.Children)),
+		obj := Object{
+			Type: ObjectTypeMap,
+			Map: make(map[string]Object, len(root.Children)),
+			MapKeys: make([]Object, 0, len(root.Children)),
 		}
 
 		for _, c := range root.Children {
 			if c.Zip == nil { continue }
-			var left []GolspObject
-			var right []GolspObject
+			var left []Object
+			var right []Object
 
 			if c.Spread {
 				left = SpreadNode(scope, c)
 			} else {
-				left = []GolspObject{Eval(MakeScope(&scope), c)}
+				left = []Object{Eval(MakeScope(&scope), c)}
 			}
 			if c.Zip.Spread {
 				right = SpreadNode(scope, *c.Zip)
 			} else {
-				right = []GolspObject{Eval(MakeScope(&scope), *c.Zip)}
+				right = []Object{Eval(MakeScope(&scope), *c.Zip)}
 			}
 
 			minlen := int(math.Min(float64(len(left)), float64(len(right))))
 			for index := 0; index < minlen; index++ {
-				if left[index].Type != GolspObjectTypeLiteral {
+				if left[index].Type != ObjectTypeLiteral {
 					continue
 				}
 
@@ -569,8 +569,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// argobjects is the rest of the expression, the arguments passed
 	// to exprhead
 	// arguments are evaluated in their own scope (argscope) to prevent side effects
-	var exprhead GolspObject
-	argobjects := make([]GolspObject, 0, len(root.Children))
+	var exprhead Object
+	argobjects := make([]Object, 0, len(root.Children))
 	argscope := MakeScope(&scope)
 
 	if root.Children[0].Spread {
@@ -584,14 +584,14 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// the function's argument scope is cleared every time it is called
 	// since the arguments will be bound again
-	if exprhead.Type == GolspObjectTypeFunction {
-		exprhead.Scope.Identifiers = make(map[string]GolspObject, len(exprhead.Scope.Identifiers))
+	if exprhead.Type == ObjectTypeFunction {
+		exprhead.Scope.Identifiers = make(map[string]Object, len(exprhead.Scope.Identifiers))
 	}
 
 	// evaluating an expression with a number literal or UNDEFINED head
 	// produces the literal or UNDEFINED
 	// i.e [1 2 3] evals to 1, [undefined a b c] evals to undefined
-	if exprhead.Type == GolspObjectTypeLiteral &&
+	if exprhead.Type == ObjectTypeLiteral &&
 		(exprhead.Value.Type == STNodeTypeNumberLiteral ||
 		exprhead.Value.Head == UNDEFINED) {
 		return evalDot(exprhead, root)
@@ -599,8 +599,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 
 	// if exprhead is a list or string literal, slice it
 	// if it is a map, lookup key
-	if exprhead.Type == GolspObjectTypeList ||
-		exprhead.Type == GolspObjectTypeMap ||
+	if exprhead.Type == ObjectTypeList ||
+		exprhead.Type == ObjectTypeMap ||
 		exprhead.Value.Type == STNodeTypeStringLiteral {
 		for _, c := range root.Children[1:] {
 			if c.Spread {
@@ -610,7 +610,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 			}
 		}
 
-		if exprhead.Type == GolspObjectTypeMap {
+		if exprhead.Type == ObjectTypeMap {
 			return evalDot(evalMap(exprhead, argobjects), root)
 		}
 
@@ -627,8 +627,8 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 	// arguments on their own
 	if builtin {
 		for _, c := range root.Children[1:] {
-			obj := GolspObject{
-				Type: GolspObjectTypeBuiltinArgument,
+			obj := Object{
+				Type: ObjectTypeBuiltinArgument,
 				Value: c,
 			}
 			argobjects = append(argobjects, obj)
@@ -668,7 +668,7 @@ func Eval(scope GolspScope, root STNode) GolspObject {
 // `filename`: the name of the program file
 // `args`: command line arguments passed to the program
 // this function returns the result of running the program
-func Run(dirname string, filename string, args []string, program string) GolspObject {
+func Run(dirname string, filename string, args []string, program string) Object {
 	InitializeBuiltins(dirname, filename, args)
 	result := Eval(Builtins, MakeST(Tokenize(program)))
 	defer WaitGroup.Wait()
