@@ -11,7 +11,7 @@ import (
 
 func PrintElements(list Object) string {
 	str := ""
-	for _, elem := range list.Elements {
+	for _, elem := range list.Elements.ToSlice() {
 		if elem.Type == ObjectTypeList {
 			str += "{ " + PrintElements(elem) + " }"
 		}

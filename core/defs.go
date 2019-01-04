@@ -6,6 +6,7 @@ package golsp
 import (
 	"fmt"
 	"strconv"
+	"errors"
 )
 
 // STNode: A single syntax tree node that has a 'head' (i.e value), type,
@@ -79,7 +80,7 @@ type Object struct {
 	Type ObjectType
 	Function Function
 	Value STNode
-	Elements []Object
+	Elements List
 	Map map[string]Object
 	MapKeys []Object
 }
@@ -171,16 +172,44 @@ func MapObject(gomap map[string]Object) Object {
 func ListObject(slice []string) Object {
 	object := Object{
 		Type: ObjectTypeList,
-		Elements: make([]Object, len(slice)),
+		Elements: List{},
 	}
-	for i, str := range slice {
-		object.Elements[i] = StringObject(str)
+	for _, str := range slice {
+		object.Elements.Append(StringObject(str))
 	}
 
 	return object
 }
 
 // /Object constructors
+
+// Object de-constructors
+
+// ToString: Extract a string from a string object. This function cannot
+// convert non-string objects to strings
+// `obj`: the string object
+// this function returns a string and an optional error
+func ToString(obj Object) (string, error) {
+	if obj.Value.Type != STNodeTypeStringLiteral {
+		return "", errors.New("Cannot convert non-string object to string")
+	}
+
+	return obj.Value.Head[1:len(obj.Value.Head) - 1], nil
+}
+
+// ToNumber: Extract a number from a number object. This function cannot
+// convert non-number objects to numbers
+// `obj`: the number object
+// this function returns a number (as a float64) and an optional error
+func ToNumber(obj Object) (float64, error) {
+	if obj.Value.Type != STNodeTypeNumberLiteral {
+		return -1, errors.New("Cannot convert non-number object to number")
+	}
+
+	return strconv.ParseFloat(obj.Value.Head, 64)
+}
+
+// /Object de-constructors
 
 // names of special builtin identifiers
 const UNDEFINED = "undefined"

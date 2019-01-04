@@ -4,8 +4,6 @@
 package golsp
 
 import (
-	"math"
-	"strconv"
 	"fmt"
 	"sync"
 )
@@ -57,15 +55,16 @@ func comparePatternNode(pattern STNode, arg Object) bool {
 	if pattern.Type == STNodeTypeList {
 		if arg.Type != ObjectTypeList { return false }
 
+		elems := arg.Elements.ToSlice()
 		for i, c := range pattern.Children {
 			if c.Spread && c.Type == STNodeTypeIdentifier {
-				return len(arg.Elements) >= i
+				return len(elems) >= i
 			}
-			if len(arg.Elements) <= i { return false }
-			if !comparePatternNode(c, arg.Elements[i]) { return false }
+			if len(elems) <= i { return false }
+			if !comparePatternNode(c, elems[i]) { return false }
 		}
 
-		if len(arg.Elements) > len(pattern.Children) { return false }
+		if len(elems) > len(pattern.Children) { return false }
 	}
 
 	return true
@@ -129,7 +128,7 @@ func LookupIdentifier(scope Scope, identifier string) Object {
 		return LookupIdentifier(*(scope.Parent), identifier)
 	}
 
-	return Builtins.Identifiers[UNDEFINED]
+	return UndefinedObject()
 }
 
 // MakeScope: construct a new child scope that descends from a parent scope
@@ -172,7 +171,7 @@ func CopyObject(object Object) Object {
 		Type: object.Type,
 		Value: object.Value,
 		Function: CopyFunction(object.Function),
-		Elements: make([]Object, len(object.Elements)),
+		Elements: object.Elements.Copy(),
 		MapKeys: make([]Object, len(object.MapKeys)),
 		Map: make(map[string]Object, len(object.Map)),
 		Scope: Scope{
@@ -184,7 +183,6 @@ func CopyObject(object Object) Object {
 
 	for k, o := range object.Scope.Identifiers { newobject.Scope.Identifiers[k] = CopyObject(o) }
 	for k, v := range object.Scope.Constants { newobject.Scope.Constants[k] = v }
-	for i, e := range object.Elements { newobject.Elements[i] = CopyObject(e) }
 	for i, k := range object.MapKeys { newobject.MapKeys[i] = CopyObject(k) }
 	for k, v := range object.Map { newobject.Map[k] = CopyObject(v) }
 
@@ -226,91 +224,79 @@ func IsolateScope(scope Scope) Scope {
 func EvalSlice(list Object, arguments []Object) Object {
 	if len(arguments) == 0 { return list }
 
-	listlen := len(list.Elements)
-	if list.Type == ObjectTypeLiteral { listlen = len(list.Value.Head) - 2 }
+	for _, arg := range arguments {
+		if arg.Value.Type != STNodeTypeNumberLiteral && arg.Value.Head != UNDEFINED {
+			return UndefinedObject()
+		}
+	}
+
+	if list.Type == ObjectTypeList {
+		beginf, err := ToNumber(arguments[0])
+		if err != nil { return UndefinedObject() }
+		begin := int(beginf)
+		switch len(arguments) {
+		case 1:
+			return list.Elements.Index(begin)
+		case 2:
+			endf, err := ToNumber(arguments[1])
+			end := int(endf)
+			if err != nil { end = list.Elements.Length }
+			return list.Elements.Slice(begin, end)
+		default:
+			endf, parseEndErr := ToNumber(arguments[1])
+			end := int(endf)
+			sliceAll := false
+			stepf, err := ToNumber(arguments[2])
+			step := int(stepf)
+			if err != nil { return UndefinedObject() }
+			if parseEndErr != nil {
+				sliceAll = true
+				if step > 0 { end = list.Elements.Length }
+				if step < 0 { end = -1 }
+			}
+			return list.Elements.SliceStep(begin, end, step, sliceAll)
+		}
+	}
+
+	strlen := len(list.Value.Head) - 2
+	byteslice := list.Value.Head[1:strlen + 1]
+	beginf, err := ToNumber(arguments[0])
+	if err != nil { return UndefinedObject() }
+	begin := int(beginf)
+	if begin < 0 { begin += strlen }
+	if begin < 0 || begin >= strlen { return UndefinedObject() }
 
 	if len(arguments) == 1 {
-		indexf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-		index := int(indexf)
-		if index < 0 { index += listlen }
-		if index < 0 || index >= listlen {
-			return Builtins.Identifiers[UNDEFINED]
-		}
-
-		if list.Type == ObjectTypeList { return list.Elements[index] }
-
-		liststr := []rune(list.Value.Head[1:listlen + 1])
-		str := fmt.Sprintf("\"%s\"", string(liststr[index:index + 1]))
-
-		return Object{
-			Type: ObjectTypeLiteral,
-			Value: STNode{
-				Type: STNodeTypeStringLiteral,
-				Head: str,
-			},
-		}
+		return StringObject(string(byteslice[begin:begin + 1]))
 	}
 
-	startf, _ := strconv.ParseFloat(arguments[0].Value.Head, 64)
-	start := int(startf)
-	end := listlen
 	step := 1
+	endf, parseEndErr := ToNumber(arguments[1])
+	end := int(endf)
+	if end < 0 { end += strlen }
+	if end < 0 { return UndefinedObject() }
+	if end > strlen { end = strlen }
 
-	if len(arguments) > 2 && arguments[2].Value.Type == STNodeTypeNumberLiteral {
-		stepf, _ := strconv.ParseFloat(arguments[2].Value.Head, 64)
+	if len(arguments) > 2 {
+		stepf, err := ToNumber(arguments[2])
 		step = int(stepf)
-		if step == 0 { return Builtins.Identifiers[UNDEFINED] }
-		if step < 0 { end = -listlen - 1 }
+		if step == 0 || err != nil { return UndefinedObject() }
 	}
 
-	if arguments[1].Value.Type == STNodeTypeNumberLiteral {
-		endf, _ := strconv.ParseFloat(arguments[1].Value.Head, 64)
-		end = int(endf)
+	if parseEndErr != nil {
+		if step > 0 { end = strlen }
+		if step < 0 { end = -1 }
 	}
 
-	if start < 0 { start += listlen }
-	if end < 0 { end += listlen }
-
-	slice := Object{
-		Type: list.Type,
-		Elements: make([]Object, 0, listlen),
-	}
-	slicestr := make([]rune, 0, listlen)
-	var liststr []rune
-	if list.Type == ObjectTypeLiteral {
-		liststr = []rune(list.Value.Head[1:listlen + 1])
-	}
-
-	if start < 0 || start >= listlen {
-		if list.Type == ObjectTypeLiteral {
-			slice.Value = STNode{
-				Type: STNodeTypeStringLiteral,
-				Head: fmt.Sprintf("\"%s\"", string(slicestr)),
-			}
-		}
-
-		return slice
-	}
-
-	for i := start; i != end; i += step {
-		if i >= listlen { break }
+	newbyteslice := make([]byte, 0, strlen)
+	for i := begin; i != end; i += step {
+		if i >= strlen { break }
 		if i < 0 { break }
 
-		if slice.Type == ObjectTypeList {
-			slice.Elements = append(slice.Elements, list.Elements[i])
-		} else {
-			slicestr = append(slicestr, liststr[i])
-		}
+		newbyteslice = append(newbyteslice, byteslice[i])
 	}
 
-	if list.Type == ObjectTypeLiteral {
-		slice.Value = STNode{
-			Type: STNodeTypeStringLiteral,
-			Head: fmt.Sprintf("\"%s\"", string(slicestr)),
-		}
-	}
-
-	return slice
+	return StringObject(string(newbyteslice))
 }
 
 // EvalMap: Lookup key(s) in a map
@@ -322,18 +308,18 @@ func EvalMap(glmap Object, arguments []Object) Object {
 	if len (arguments) == 1 {
 		value, exists := glmap.Map[arguments[0].Value.Head]
 		if arguments[0].Type != ObjectTypeLiteral || !exists {
-			return Builtins.Identifiers[UNDEFINED]
+			UndefinedObject()
 		}
 		return value
 	}
 
-	values := make([]Object, len(arguments))
-	for i, arg := range arguments {
+	values := List{}
+	for _, arg := range arguments {
 		value, exists := glmap.Map[arg.Value.Head]
 		if arg.Type != ObjectTypeLiteral || !exists {
-			values[i] = Builtins.Identifiers[UNDEFINED]
+			values.Append(UndefinedObject())
 		} else {
-			values[i] = value
+			values.Append(value)
 		}
 	}
 
@@ -346,35 +332,29 @@ func EvalMap(glmap Object, arguments []Object) Object {
 // SpreadNode: Apply the spread operator to a syntax tree node
 // `scope`: the scope within which the node is being spread
 // `node`: the node to spread
-// this function returns the list of Objects that the node spreads to
-func SpreadNode(scope Scope, node STNode) []Object {
+// this function returns the List of Objects that the node spreads to
+func SpreadNode(scope Scope, node STNode) List {
 	nodescope := MakeScope(&scope)
 	obj := Eval(nodescope, node)
-	if obj.Value.Head == UNDEFINED { return make([]Object, 0) }
+	list := List{}
+	if obj.Value.Head == UNDEFINED { return list }
 
-	if obj.Type != ObjectTypeList &&
-		obj.Type != ObjectTypeMap &&
-		obj.Value.Type != STNodeTypeStringLiteral {
-		return []Object{obj}
+	if obj.Type == ObjectTypeFunction || obj.Value.Type == STNodeTypeNumberLiteral {
+		list.Append(obj)
+		return list
 	}
 
 	if obj.Type == ObjectTypeList { return obj.Elements }
-	if obj.Type == ObjectTypeMap { return obj.MapKeys }
-
-	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
-	objects := make([]Object, len(str))
-
-	for i, r := range str {
-		objects[i] = Object{
-			Type: ObjectTypeLiteral,
-			Value: STNode{
-				Type: STNodeTypeStringLiteral,
-				Head: fmt.Sprintf("\"%s\"", string(r)),
-			},
-		}
+	if obj.Type == ObjectTypeMap {
+		return ListFromSlice(obj.MapKeys)
 	}
 
-	return objects
+	str := obj.Value.Head[1:len(obj.Value.Head) - 1]
+	for _, r := range str {
+		list.Append(StringObject(string(r)))
+	}
+
+	return list
 }
 
 // bindArguments: Bind the arguments passed to a function to the function
@@ -394,7 +374,7 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects []Object) {
 			if symbol.Spread {
 				exprhead.Scope.Identifiers[symbol.Head] = Object{
 					Type: ObjectTypeList,
-					Elements: argobjects[i:],
+					Elements: ListFromSlice(argobjects[i:]),
 				}
 				break
 			}
@@ -403,7 +383,7 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects []Object) {
 		}
 
 		if argobjects[i].Type == ObjectTypeList && symbol.Type == STNodeTypeList {
-			bindArguments(exprhead, symbol.Children, argobjects[i].Elements)
+			bindArguments(exprhead, symbol.Children, argobjects[i].Elements.ToSlice())
 		}
 
 		if argobjects[i].Type == ObjectTypeMap && symbol.Type == STNodeTypeMap {
@@ -480,7 +460,7 @@ func Eval(scope Scope, root STNode) Object {
 		for _, child := range root.Children {
 			if child.Spread {
 				spread := SpreadNode(newscope, child)
-				result = spread[len(spread) - 1]
+				result = spread.Last.Object
 			} else {
 				result = Eval(newscope, child)
 			}
@@ -507,12 +487,12 @@ func Eval(scope Scope, root STNode) Object {
 	// note that list elements are evaluated immediately, unlike quote expressions
 	// in Lisp
 	if root.Type == STNodeTypeList {
-		elements := make([]Object, 0, len(root.Children))
+		elements := List{}
 		for _, c := range root.Children {
 			if c.Spread {
-				elements = append(elements, SpreadNode(scope, c)...)
+				elements.Join(SpreadNode(scope, c))
 			} else {
-				elements = append(elements, Eval(MakeScope(&scope), c))
+				elements.Append(Eval(MakeScope(&scope), c))
 			}
 		}
 
@@ -533,31 +513,34 @@ func Eval(scope Scope, root STNode) Object {
 
 		for _, c := range root.Children {
 			if c.Zip == nil { continue }
-			var left []Object
-			var right []Object
+			left := List{}
+			right := List{}
 
 			if c.Spread {
 				left = SpreadNode(scope, c)
 			} else {
-				left = []Object{Eval(MakeScope(&scope), c)}
+				left.Append(Eval(MakeScope(&scope), c))
 			}
 			if c.Zip.Spread {
 				right = SpreadNode(scope, *c.Zip)
 			} else {
-				right = []Object{Eval(MakeScope(&scope), *c.Zip)}
+				right.Append(Eval(MakeScope(&scope), *c.Zip))
 			}
 
-			minlen := int(math.Min(float64(len(left)), float64(len(right))))
+			minlen := left.Length; if right.Length < left.Length { minlen = right.Length }
+			key := left.First
+			value := right.First
 			for index := 0; index < minlen; index++ {
-				if left[index].Type != ObjectTypeLiteral {
-					continue
+				if key.Object.Type != ObjectTypeLiteral { continue }
+
+				_, exists := obj.Map[key.Object.Value.Head]
+				obj.Map[key.Object.Value.Head] = value.Object
+				if !exists {
+					obj.MapKeys = append(obj.MapKeys, key.Object)
 				}
 
-				_, exists := obj.Map[left[index].Value.Head]
-				obj.Map[left[index].Value.Head] = right[index]
-				if !exists {
-					obj.MapKeys = append(obj.MapKeys, left[index])
-				}
+				key = left.Next(key, index)
+				value = right.Next(value, index)
 			}
 		}
 
@@ -582,9 +565,10 @@ func Eval(scope Scope, root STNode) Object {
 
 	if root.Children[0].Spread {
 		spread := SpreadNode(scope, root.Children[0])
-		if len(spread) == 0 { return Builtins.Identifiers[UNDEFINED] }
-		exprhead = spread[0]
-		argobjects = spread[1:]
+		if spread.Length == 0 { return UndefinedObject() }
+		spreadslice := spread.ToSlice()
+		exprhead = spreadslice[0]
+		argobjects = spreadslice[1:]
 	} else {
 		exprhead = Eval(MakeScope(&scope), root.Children[0])
 	}
@@ -609,30 +593,30 @@ func Eval(scope Scope, root STNode) Object {
 	if exprhead.Type == ObjectTypeList ||
 		exprhead.Type == ObjectTypeMap ||
 		exprhead.Value.Type == STNodeTypeStringLiteral {
+		arglist := List{}
 		for _, c := range root.Children[1:] {
 			if c.Spread {
-				argobjects = append(argobjects, SpreadNode(argscope, c)...)
+				arglist.Join(SpreadNode(argscope, c))
 			} else {
-				argobjects = append(argobjects, Eval(argscope, c))
+				arglist.Append(Eval(argscope, c))
 			}
 		}
 
 		if exprhead.Type == ObjectTypeMap {
-			return evalDot(EvalMap(exprhead, argobjects), root)
+			return evalDot(EvalMap(exprhead, arglist.ToSlice()), root)
 		}
 
-		return evalDot(EvalSlice(exprhead, argobjects), root)
+		return evalDot(EvalSlice(exprhead, arglist.ToSlice()), root)
 	}
 
 	// at this point the expression must be a function call
 
 	fn := exprhead.Function
-	builtin := fn.BuiltinFunc != nil
 
 	// builtin functions are called without evaluating the
 	// argument syntax tree nodes, these functions can decide how to eval
 	// arguments on their own
-	if builtin {
+	if fn.BuiltinFunc != nil {
 		for _, c := range root.Children[1:] {
 			obj := Object{
 				Type: ObjectTypeBuiltinArgument,
@@ -646,13 +630,15 @@ func Eval(scope Scope, root STNode) Object {
 
 	// at this point the expression must be a calling a user-defined function
 	// all arguments are evaluated immediately
+	arglist := List{}
 	for _, c := range root.Children[1:] {
 		if c.Spread {
-			argobjects = append(argobjects, SpreadNode(argscope, c)...)
+			arglist.Join(SpreadNode(argscope, c))
 		} else {
-			argobjects = append(argobjects, Eval(argscope, c))
+			arglist.Append(Eval(argscope, c))
 		}
 	}
+	argobjects = append(argobjects, arglist.ToSlice()...)
 
 	patternindex, patternfound := matchPatterns(fn, argobjects)
 	if !patternfound { return Builtins.Identifiers[UNDEFINED] }

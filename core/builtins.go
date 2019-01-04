@@ -367,7 +367,7 @@ func formatStr(text string, objects []Object) string {
 
 		if v.Type == ObjectTypeList {
 			args[i] = fmt.Sprintf("{%v}",
-				formatStr(strings.Repeat("%v ", len(v.Elements)), v.Elements))
+				formatStr(strings.Repeat("%v ", v.Elements.Length), v.Elements.ToSlice()))
 			continue
 		}
 
@@ -383,11 +383,9 @@ func formatStr(text string, objects []Object) string {
 		}
 
 		if v.Value.Type == STNodeTypeNumberLiteral {
-			n, _ := strconv.ParseFloat(v.Value.Head, 64)
-			args[i] = n
+			args[i], _ = ToNumber(v)
 		} else if v.Value.Type == STNodeTypeStringLiteral {
-			str := v.Value.Head[1:len(v.Value.Head) - 1]
-			args[i] = str
+			args[i], _ = ToString(v)
 		} else {
 			args[i] = "<undefined>"
 		}
@@ -495,7 +493,7 @@ func objectToBoolean(obj Object) bool {
 			return len(obj.Value.Head) > 2
 		}
 	}
-	if obj.Type == ObjectTypeList { return len(obj.Elements) > 0 }
+	if obj.Type == ObjectTypeList { return obj.Elements.Length > 0 }
 	if obj.Type == ObjectTypeMap { return len(obj.MapKeys) > 0 }
 	if obj.Type == ObjectTypeFunction { return true }
 
@@ -515,7 +513,7 @@ func BuiltinIf(scope Scope, args []Object) Object {
 		argscope := MakeScope(&scope)
 		if args[0].Value.Spread {
 			spread := SpreadNode(argscope, args[0].Value)
-			arguments = spread
+			arguments = spread.ToSlice()
 		} else {
 			arguments[0] = Eval(argscope, args[0].Value)
 		}
@@ -641,20 +639,19 @@ func BuiltinComparisonFunction(op string) Object {
 // this function returns the evaluated arguments as a list of Objects
 func EvalArgs(scp Scope, args []Object) []Object {
 	scope := MakeScope(&scp)
-	arguments := make([]Object, 0, len(args))
+	arglist := List{}
 	for _, child := range args {
 		if child.Type == ObjectTypeBuiltinArgument {
 			node := child.Value
 			if node.Spread {
-				spread := SpreadNode(scope, node)
-				arguments = append(arguments, spread...)
+				arglist.Join(SpreadNode(scope, node))
 			} else {
-				arguments = append(arguments, Eval(scope, node))
+				arglist.Append(Eval(scope, node))
 			}
 		} else {
-			arguments = append(arguments, child)
+			arglist.Append(child)
 		}
 	}
 
-	return arguments
+	return arglist.ToSlice()
 }
