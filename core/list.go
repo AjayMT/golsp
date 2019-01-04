@@ -50,6 +50,21 @@ func (l *List) slice(begin int, end int) List {
 	return slice
 }
 
+func (l *List) sublist(begin *Item, index int) List {
+	sublist := List{
+		First: begin,
+		Last: l.Last,
+		Length: l.Length - index,
+		branches: make(map[int]*Item),
+	}
+
+	for i, branch := range l.branches {
+		if i >= index { sublist.branches[i] = branch }
+	}
+
+	return sublist
+}
+
 func (l *List) Next(item *Item, index int) *Item {
 	if (index >= l.Length) { return nil }
 

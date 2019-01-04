@@ -55,16 +55,17 @@ func comparePatternNode(pattern STNode, arg Object) bool {
 	if pattern.Type == STNodeTypeList {
 		if arg.Type != ObjectTypeList { return false }
 
-		elems := arg.Elements.ToSlice()
-		for i, c := range pattern.Children {
-			if c.Spread && c.Type == STNodeTypeIdentifier {
-				return len(elems) >= i
+		ce := arg.Elements.First
+		for i := 0; i < len(pattern.Children); ce, i = arg.Elements.Next(ce, i), i + 1 {
+			child := pattern.Children[i]
+			if child.Spread && child.Type == STNodeTypeIdentifier {
+				return arg.Elements.Length >= i
 			}
-			if len(elems) <= i { return false }
-			if !comparePatternNode(c, elems[i]) { return false }
+			if arg.Elements.Length <= i { return false }
+			if !comparePatternNode(child, ce.Object) { return false }
 		}
 
-		if len(elems) > len(pattern.Children) { return false }
+		if arg.Elements.Length > len(pattern.Children) { return false }
 	}
 
 	return true
@@ -75,7 +76,7 @@ func comparePatternNode(pattern STNode, arg Object) bool {
 // `arguments`: the list of arguments to match to a pattern
 // this function returns the index of the best-matching pattern in function's
 // list of patterns, and whether a matching pattern was found
-func matchPatterns(fn Function, arguments []Object) (int, bool) {
+func matchPatterns(fn Function, arguments List) (int, bool) {
 	patterns := fn.FunctionPatterns
 	bestscore := 0
 	bestdiff := -1
@@ -86,20 +87,21 @@ func matchPatterns(fn Function, arguments []Object) (int, bool) {
 		score := 0
 		diff := 0
 		minlen := len(p)
-		if len(p) > len(arguments) {
-			diff = len(p) - len(arguments)
-			minlen = len(arguments)
+		if len(p) > arguments.Length {
+			diff = len(p) - arguments.Length
+			minlen = arguments.Length
 		}
 
 		if len(p) == 0 { found = true }
 
-		for j := 0; j < minlen; j++ {
-			if comparePatternNode(p[j], arguments[j]) {
+		ca := arguments.First
+		for j := 0; j < minlen; ca, j = arguments.Next(ca, j), j + 1 {
+			if comparePatternNode(p[j], ca.Object) {
 				found = true
 				score++
 			}
 			if p[j].Spread {
-				score += len(arguments) - 1 - j
+				score += arguments.Length - 1 - j
 				break
 			}
 		}
@@ -221,32 +223,33 @@ func IsolateScope(scope Scope) Scope {
 // `list`: the list or string that is sliced
 // `arguments`: the arguments passed in the expression
 // this function returns a slice of the list/string or UNDEFINED
-func EvalSlice(list Object, arguments []Object) Object {
-	if len(arguments) == 0 { return list }
+func EvalSlice(list Object, arguments List) Object {
+	if arguments.Length == 0 { return list }
 
-	for _, arg := range arguments {
-		if arg.Value.Type != STNodeTypeNumberLiteral && arg.Value.Head != UNDEFINED {
+	for c, i := arguments.First, 0; i < arguments.Length; c, i = arguments.Next(c, i), i + 1 {
+		if c.Object.Value.Type != STNodeTypeNumberLiteral && c.Object.Value.Head != UNDEFINED {
 			return UndefinedObject()
 		}
 	}
 
 	if list.Type == ObjectTypeList {
-		beginf, err := ToNumber(arguments[0])
+		beginf, err := ToNumber(arguments.First.Object)
 		if err != nil { return UndefinedObject() }
 		begin := int(beginf)
-		switch len(arguments) {
+		switch arguments.Length {
 		case 1:
 			return list.Elements.Index(begin)
 		case 2:
-			endf, err := ToNumber(arguments[1])
+			endf, err := ToNumber(arguments.Next(arguments.First, 0).Object)
 			end := int(endf)
 			if err != nil { end = list.Elements.Length }
 			return list.Elements.Slice(begin, end)
 		default:
-			endf, parseEndErr := ToNumber(arguments[1])
+			secondarg := arguments.Next(arguments.First, 0)
+			endf, parseEndErr := ToNumber(secondarg.Object)
 			end := int(endf)
 			sliceAll := false
-			stepf, err := ToNumber(arguments[2])
+			stepf, err := ToNumber(arguments.Next(secondarg, 1).Object)
 			step := int(stepf)
 			if err != nil { return UndefinedObject() }
 			if parseEndErr != nil {
@@ -260,25 +263,26 @@ func EvalSlice(list Object, arguments []Object) Object {
 
 	strlen := len(list.Value.Head) - 2
 	byteslice := list.Value.Head[1:strlen + 1]
-	beginf, err := ToNumber(arguments[0])
+	beginf, err := ToNumber(arguments.First.Object)
 	if err != nil { return UndefinedObject() }
 	begin := int(beginf)
 	if begin < 0 { begin += strlen }
 	if begin < 0 || begin >= strlen { return UndefinedObject() }
 
-	if len(arguments) == 1 {
+	if arguments.Length == 1 {
 		return StringObject(string(byteslice[begin:begin + 1]))
 	}
 
 	step := 1
-	endf, parseEndErr := ToNumber(arguments[1])
+	endf, parseEndErr := ToNumber(arguments.Next(arguments.First, 0).Object)
 	end := int(endf)
 	if end < 0 { end += strlen }
 	if end < 0 { return UndefinedObject() }
 	if end > strlen { end = strlen }
 
-	if len(arguments) > 2 {
-		stepf, err := ToNumber(arguments[2])
+	if arguments.Length > 2 {
+		secondarg := arguments.Next(arguments.First, 0)
+		stepf, err := ToNumber(arguments.Next(secondarg, 1).Object)
 		step = int(stepf)
 		if step == 0 || err != nil { return UndefinedObject() }
 	}
@@ -286,6 +290,10 @@ func EvalSlice(list Object, arguments []Object) Object {
 	if parseEndErr != nil {
 		if step > 0 { end = strlen }
 		if step < 0 { end = -1 }
+	}
+
+	if step == 1 {
+		return StringObject(byteslice[begin:end])
 	}
 
 	newbyteslice := make([]byte, 0, strlen)
@@ -303,20 +311,21 @@ func EvalSlice(list Object, arguments []Object) Object {
 // `glmap`: the map object
 // `arguments`: the key or keys to look up
 // this function returns the object or list of objects that the key(s) map to
-func EvalMap(glmap Object, arguments []Object) Object {
-	if len(arguments) == 0 { return glmap }
-	if len (arguments) == 1 {
-		value, exists := glmap.Map[arguments[0].Value.Head]
-		if arguments[0].Type != ObjectTypeLiteral || !exists {
+func EvalMap(glmap Object, arguments List) Object {
+	if arguments.Length == 0 { return glmap }
+	if arguments.Length == 1 {
+		firstarg := arguments.First.Object
+		value, exists := glmap.Map[firstarg.Value.Head]
+		if firstarg.Type != ObjectTypeLiteral || !exists {
 			UndefinedObject()
 		}
 		return value
 	}
 
 	values := List{}
-	for _, arg := range arguments {
-		value, exists := glmap.Map[arg.Value.Head]
-		if arg.Type != ObjectTypeLiteral || !exists {
+	for c, i := arguments.First, 0; i < arguments.Length; c, i = arguments.Next(c, i), i + 1 {
+		value, exists := glmap.Map[c.Object.Value.Head]
+		if c.Object.Type != ObjectTypeLiteral || !exists {
 			values.Append(UndefinedObject())
 		} else {
 			values.Append(value)
@@ -364,8 +373,10 @@ func SpreadNode(scope Scope, node STNode) List {
 // to identifiers
 // `argobjects`: the arguments passed to the function that will be bound to
 // identifiers
-func bindArguments(exprhead Object, pattern []STNode, argobjects []Object) {
-	for i, symbol := range pattern {
+func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
+	currentarg := argobjects.First
+	for i := 0; i < len(pattern); i, currentarg = i + 1, argobjects.Next(currentarg, i) {
+		symbol := pattern[i]
 		if symbol.Type == STNodeTypeStringLiteral || symbol.Type == STNodeTypeNumberLiteral {
 			continue
 		}
@@ -374,19 +385,19 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects []Object) {
 			if symbol.Spread {
 				exprhead.Scope.Identifiers[symbol.Head] = Object{
 					Type: ObjectTypeList,
-					Elements: ListFromSlice(argobjects[i:]),
+					Elements: argobjects.sublist(currentarg, i),
 				}
 				break
 			}
-			exprhead.Scope.Identifiers[symbol.Head] = argobjects[i]
+			exprhead.Scope.Identifiers[symbol.Head] = currentarg.Object
 			continue
 		}
 
-		if argobjects[i].Type == ObjectTypeList && symbol.Type == STNodeTypeList {
-			bindArguments(exprhead, symbol.Children, argobjects[i].Elements.ToSlice())
+		if currentarg.Object.Type == ObjectTypeList && symbol.Type == STNodeTypeList {
+			bindArguments(exprhead, symbol.Children, currentarg.Object.Elements)
 		}
 
-		if argobjects[i].Type == ObjectTypeMap && symbol.Type == STNodeTypeMap {
+		if currentarg.Object.Type == ObjectTypeMap && symbol.Type == STNodeTypeMap {
 			// this is a giant mess. clean it up
 
 			mapped := make(map[string]bool)
@@ -400,19 +411,19 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects []Object) {
 
 				if child.Zip == nil { continue }
 
-				value, exists := argobjects[i].Map[child.Head]
+				value, exists := currentarg.Object.Map[child.Head]
 				if !exists { continue }
 
-				bindArguments(exprhead, []STNode{*child.Zip}, []Object{value})
+				bindArguments(exprhead, []STNode{*child.Zip}, ListFromSlice([]Object{value}))
 				mapped[child.Head] = true
 			}
 
-			keys := make([]Object, 0, len(argobjects[i].MapKeys))
-			values := make([]Object, 0, len(argobjects[i].MapKeys))
-			for _, key := range argobjects[i].MapKeys {
+			keys := List{}
+			values := List{}
+			for _, key := range currentarg.Object.MapKeys {
 				if !mapped[key.Value.Head] {
-					keys = append(keys, key)
-					values = append(values, argobjects[i].Map[key.Value.Head])
+					keys.Append(key)
+					values.Append(currentarg.Object.Map[key.Value.Head])
 				}
 			}
 
@@ -560,15 +571,14 @@ func Eval(scope Scope, root STNode) Object {
 	// to exprhead
 	// arguments are evaluated in their own scope (argscope) to prevent side effects
 	var exprhead Object
-	argobjects := make([]Object, 0, len(root.Children))
+	argobjects := List{}
 	argscope := MakeScope(&scope)
 
 	if root.Children[0].Spread {
 		spread := SpreadNode(scope, root.Children[0])
 		if spread.Length == 0 { return UndefinedObject() }
-		spreadslice := spread.ToSlice()
-		exprhead = spreadslice[0]
-		argobjects = spreadslice[1:]
+		exprhead = spread.First.Object
+		argobjects = spread.slice(1, spread.Length)
 	} else {
 		exprhead = Eval(MakeScope(&scope), root.Children[0])
 	}
@@ -593,20 +603,19 @@ func Eval(scope Scope, root STNode) Object {
 	if exprhead.Type == ObjectTypeList ||
 		exprhead.Type == ObjectTypeMap ||
 		exprhead.Value.Type == STNodeTypeStringLiteral {
-		arglist := List{}
 		for _, c := range root.Children[1:] {
 			if c.Spread {
-				arglist.Join(SpreadNode(argscope, c))
+				argobjects.Join(SpreadNode(argscope, c))
 			} else {
-				arglist.Append(Eval(argscope, c))
+				argobjects.Append(Eval(argscope, c))
 			}
 		}
 
 		if exprhead.Type == ObjectTypeMap {
-			return evalDot(EvalMap(exprhead, arglist.ToSlice()), root)
+			return evalDot(EvalMap(exprhead, argobjects), root)
 		}
 
-		return evalDot(EvalSlice(exprhead, arglist.ToSlice()), root)
+		return evalDot(EvalSlice(exprhead, argobjects), root)
 	}
 
 	// at this point the expression must be a function call
@@ -622,32 +631,30 @@ func Eval(scope Scope, root STNode) Object {
 				Type: ObjectTypeBuiltinArgument,
 				Value: c,
 			}
-			argobjects = append(argobjects, obj)
+			argobjects.Append(obj)
 		}
 
-		return evalDot(fn.BuiltinFunc(scope, argobjects), root)
+		return evalDot(fn.BuiltinFunc(scope, argobjects.ToSlice()), root)
 	}
 
 	// at this point the expression must be a calling a user-defined function
 	// all arguments are evaluated immediately
-	arglist := List{}
 	for _, c := range root.Children[1:] {
 		if c.Spread {
-			arglist.Join(SpreadNode(argscope, c))
+			argobjects.Join(SpreadNode(argscope, c))
 		} else {
-			arglist.Append(Eval(argscope, c))
+			argobjects.Append(Eval(argscope, c))
 		}
 	}
-	argobjects = append(argobjects, arglist.ToSlice()...)
 
 	patternindex, patternfound := matchPatterns(fn, argobjects)
-	if !patternfound { return Builtins.Identifiers[UNDEFINED] }
+	if !patternfound { return UndefinedObject() }
 	pattern := fn.FunctionPatterns[patternindex]
 
 	// calling a function with fewer arguments than required evaluates to UNDEFINED
 	// might possibly implement automatic partial evaluation in the future
-	if len(argobjects) < len(pattern) {
-		return Builtins.Identifiers[UNDEFINED]
+	if argobjects.Length < len(pattern) {
+		return UndefinedObject()
 	}
 
 	bindArguments(exprhead, pattern, argobjects)
