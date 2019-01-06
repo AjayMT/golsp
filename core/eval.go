@@ -456,6 +456,26 @@ func evalDot(obj Object, root STNode) Object {
 	return evalDot(value, *root.Dot)
 }
 
+// CallFunction: call a function object with a list of arguments
+// `fnobj`: the function object
+// `args`: the list of arguments
+// this function returns the result of the function call
+func CallFunction(fnobj Object, args List) Object {
+	if fnobj.Type != ObjectTypeFunction { return UndefinedObject() }
+
+	fnobj.Scope.Identifiers = make(map[string]Object, len(fnobj.Scope.Identifiers))
+	patternindex, patternfound := matchPatterns(fnobj.Function, args)
+	if !patternfound { return UndefinedObject() }
+
+	pattern := fnobj.Function.FunctionPatterns[patternindex]
+	body := fnobj.Function.FunctionBodies[patternindex]
+	if args.Length < len(pattern) { return UndefinedObject() }
+
+	bindArguments(fnobj, pattern, args)
+
+	return Eval(fnobj.Scope, body)
+}
+
 // Eval: Evaluate a syntax tree node within a scope
 // `scope`: the scope within which to evaluate the node
 // `root`: the root node to evaluate

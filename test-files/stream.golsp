@@ -1,0 +1,9 @@
+
+const stream [require "stdlib/stream.golsp"]
+
+def [double x] [* x 2]
+def mystream [stream double]
+mystream.write 1 2 3 4
+printf "%v %v\n" [mystream.read] [mystream.read]
+printf "%v\n" [mystream.flush]
+printf "%v\n" [mystream.flush]
