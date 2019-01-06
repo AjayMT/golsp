@@ -454,13 +454,24 @@ func BuiltinDo(scope Scope, arguments []Object) Object {
 // a series of statements within an enclosed, isolated scope
 // this function returns UNDEFINED
 func BuiltinGo(scope Scope, arguments []Object) Object {
+	var result Object
+	completed := false
+
 	RuntimeWaitGroup().Add(1)
 	go func () {
 		defer RuntimeWaitGroup().Done()
-		BuiltinDo(scope, arguments)
+		result = BuiltinDo(scope, arguments)
+		completed = true
 	}()
 
-	return Builtins.Identifiers[UNDEFINED]
+	wait := func(_ Scope, _ []Object) Object {
+		for !completed {}
+		return result
+	}
+
+	return MapObject(map[string]Object{
+		"wait": BuiltinFunctionObject("wait", wait),
+	})
 }
 
 // BuiltinSleep: the builtin 'sleep' function. This function waits for a

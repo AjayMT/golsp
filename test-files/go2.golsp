@@ -1,0 +1,8 @@
+
+def result [go
+  sleep 500
+  "world"
+]
+
+printf "%v " "hello"
+printf "%v\n" [result.wait]
