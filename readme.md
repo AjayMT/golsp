@@ -192,7 +192,7 @@ Unlike lists, spreading a map produces its keys. Maps are ordered, so they sprea
 ```python
 def mymap ( "a":1 "b":2 "c":3 )
 printf "%v %v %v\n" mymap... # => prints "a b c"
-printf "%v %v %v\n" [mymap mymap...] # => prints "1 2 3"
+printf "%v %v %v\n" [mymap mymap...]... # => prints "1 2 3"
 ```
 
 The spread operator can 'zip' keys and values together when used inside a map.
