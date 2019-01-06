@@ -112,7 +112,9 @@ func makeST(delim string, tokens []string) ([]STNode, []string) {
 		literaltype, isLiteral := LiteralDelimiterTypes[string(current.Head[0])]
 		if isLiteral {
 			if literaltype == STNodeTypeComment { continue }
-
+			if literaltype == STNodeTypeStringLiteral {
+				current.Head = fmt.Sprintf("\"%s\"", normalizeString(current.Head[1:len(current.Head) - 1]))
+			}
 			current.Type = literaltype
 			nodes, prev, zip, dot = appendNode(nodes, current, prev, zip, dot)
 			continue
@@ -177,6 +179,17 @@ func appendNode(nodes []STNode, node STNode,
 	}
 
 	return nodes, addr, false, false
+}
+
+// normalizeString: Replace esacped escape sequences with actual escape
+// sequences in a string
+// `str`: the string
+// this function returns the normalized string
+func normalizeString(str string) string {
+	str = strings.Replace(str, "\\n", "\n", -1)
+	str = strings.Replace(str, "\\\"", "\"", -1)
+
+	return str
 }
 
 // parseLiteral: parse an extended literal, i.e a string or comment

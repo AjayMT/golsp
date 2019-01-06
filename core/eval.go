@@ -446,12 +446,12 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
 // this function returns the value from the map object
 func evalDot(obj Object, root STNode) Object {
 	if root.Dot == nil { return obj }
-	if obj.Type != ObjectTypeMap { return Builtins.Identifiers[UNDEFINED] }
-	if root.Dot.Type != STNodeTypeIdentifier { return Builtins.Identifiers[UNDEFINED] }
+	if obj.Type != ObjectTypeMap { return UndefinedObject() }
+	if root.Dot.Type != STNodeTypeIdentifier { return UndefinedObject() }
 
 	key := fmt.Sprintf("\"%s\"", root.Dot.Head)
 	value, exists := obj.Map[key]
-	if !exists { return Builtins.Identifiers[UNDEFINED] }
+	if !exists { return UndefinedObject() }
 
 	return evalDot(value, *root.Dot)
 }
@@ -582,7 +582,7 @@ func Eval(scope Scope, root STNode) Object {
 
 	// empty expressions evaluate to UNDEFINED
 	if len(root.Children) == 0 {
-		return evalDot(Builtins.Identifiers[UNDEFINED], root)
+		return evalDot(UndefinedObject(), root)
 	}
 
 	// exprhead is the head of the expression, aka the function

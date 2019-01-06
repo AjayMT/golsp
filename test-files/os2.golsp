@@ -7,4 +7,4 @@ def fd [when
   1: [os.open [__args__ 0]]
 ]
 
-printf "contents:\n\"\"\"\n%v\n\"\"\"\n" [os.readAll fd]
+printf "contents:\n\"\"\"\n%v\n\"\"\"\n" [os.readUntil fd "\n"]

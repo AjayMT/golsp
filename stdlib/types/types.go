@@ -10,7 +10,7 @@ func typeCheck(objectType g.ObjectType, nodeType g.STNodeType) g.BuiltinFunction
 	return func (scope g.Scope, args []g.Object) g.Object {
 		arguments := g.EvalArgs(scope, args)
 		if len(arguments) < 1 {
-			return g.Builtins.Identifiers[g.UNDEFINED]
+			return g.UndefinedObject()
 		}
 		if arguments[0].Type != objectType {
 			return g.NumberObject(0.0)
@@ -27,7 +27,7 @@ func parseNumber(scope g.Scope, args []g.Object) g.Object {
 	arguments := g.EvalArgs(scope, args)
 	str := arguments[0].Value.Head
 	num, err := strconv.ParseFloat(str[1:len(str) - 1], 64)
-	if err != nil { return g.Builtins.Identifiers[g.UNDEFINED] }
+	if err != nil { return g.UndefinedObject() }
 
 	return g.NumberObject(num)
 }

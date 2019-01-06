@@ -1,10 +1,34 @@
 
 const base [require "./os/os.so"]
 const types [require "./types.golsp"]
+const isn types.isNumber
+const iss types.isString
 
-const [exit n] [when [types.isNumber n]: [base.exit n]]
+const [open fname] [when [iss fname]: [base.open fname]]
+
+const [read index n] [when
+  [* [isn index] [isn n]]: [base.read index n]
+]
+const [readAll index] [when [isn index]: [base.readAll index]]
+const [readUntil index delim] [when
+  [* [isn index] [iss delim]]: [base.readUntil index delim]
+]
+
+const [write index str] [when
+  [* [isn index] [iss str]]: [base.write index str]
+]
+
+const [exit n] [when [isn n]: [base.exit n]]
 
 # exports
 (
-    "exit": exit
+  "stdin": base.stdin
+  "stdout": base.stdout
+  "stderr": base.stderr
+  "open": open
+  "read": read
+  "readAll": readAll
+  "readUntil": readUntil
+  "write": write
+  "exit": exit
 )

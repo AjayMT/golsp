@@ -127,13 +127,13 @@ func BuiltinConst(scope Scope, arguments []Object) Object {
 // identifier or pattern was bound to
 func assign(scope Scope, arguments []Object, constant bool) Object {
 	if len(arguments) < 2 {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	// as of now, '=' does not take spread expressions as arguments
 	if arguments[0].Type != ObjectTypeBuiltinArgument ||
 		arguments[1].Type != ObjectTypeBuiltinArgument {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	symbol := arguments[0].Value
@@ -142,13 +142,13 @@ func assign(scope Scope, arguments []Object, constant bool) Object {
 	// attempting to assign to a literal or list fails
 	if symbol.Type != STNodeTypeIdentifier &&
 		symbol.Type != STNodeTypeExpression {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	if symbol.Type == STNodeTypeIdentifier {
 		// attempting to assign to a constant identifier fails
 		if isConstant(scope, symbol.Head) {
-			return Builtins.Identifiers[UNDEFINED]
+			return UndefinedObject()
 		}
 
 		// if the symbol is an identifier, the value is evaluated immediately
@@ -164,7 +164,7 @@ func assign(scope Scope, arguments []Object, constant bool) Object {
 
 	head := symbol.Children[0]
 	if head.Type != STNodeTypeIdentifier {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	pattern := symbol.Children[1:]
@@ -179,7 +179,7 @@ func assign(scope Scope, arguments []Object, constant bool) Object {
 	}
 
 	symbol = head
-	if isConstant(scope, symbol.Head) { return Builtins.Identifiers[UNDEFINED] }
+	if isConstant(scope, symbol.Head) { return UndefinedObject() }
 
 	_, exists := scope.Identifiers[symbol.Head]
 	if !exists {
@@ -227,17 +227,17 @@ func assign(scope Scope, arguments []Object, constant bool) Object {
 // this function returns the function object that is produced
 func BuiltinLambda(scope Scope, arguments []Object) Object {
 	if len(arguments) < 2 {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	// as of now, 'lambda' does not take spread expressions as arguments
 	if arguments[0].Type != ObjectTypeBuiltinArgument ||
 		arguments[1].Type != ObjectTypeBuiltinArgument {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	if arguments[0].Value.Type != STNodeTypeExpression {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	pattern := arguments[0].Value.Children
@@ -271,10 +271,10 @@ func BuiltinRequire(scope Scope, args []Object) Object {
 	arguments := EvalArgs(scope, args)
 
 	if len(arguments) < 1 {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 	if arguments[0].Value.Type != STNodeTypeStringLiteral {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	dirnode := LookupIdentifier(scope, DIRNAME)
@@ -289,16 +289,16 @@ func BuiltinRequire(scope Scope, args []Object) Object {
 
 	if strings.HasSuffix(resolvedpath, ".so") {
 		plug, err := plugin.Open(resolvedpath)
-		if err != nil { return Builtins.Identifiers[UNDEFINED] }
+		if err != nil { return UndefinedObject() }
 		exportssym, err := plug.Lookup("Exports")
-		if err != nil { return Builtins.Identifiers[UNDEFINED] }
+		if err != nil { return UndefinedObject() }
 		return *exportssym.(*Object)
 	}
 
 	file, err := os.Open(resolvedpath)
-	if err != nil { return Builtins.Identifiers[UNDEFINED] }
+	if err != nil { return UndefinedObject() }
 	data, err := ioutil.ReadAll(file)
-	if err != nil { return Builtins.Identifiers[UNDEFINED] }
+	if err != nil { return UndefinedObject() }
 
 	return Run(filepath.Dir(resolvedpath), resolvedpath, []string{}, string(data))
 }
@@ -314,7 +314,7 @@ func BuiltinMathFunction(op string) Object {
 		arguments := EvalArgs(scope, args)
 		for _, a := range arguments {
 			if a.Value.Type != STNodeTypeNumberLiteral {
-				return Builtins.Identifiers[UNDEFINED]
+				return UndefinedObject()
 			}
 		}
 
@@ -391,10 +391,6 @@ func formatStr(text string, objects []Object) string {
 		}
 	}
 
-	// TODO: replace all literal escape sequences with actual escape characters
-	text = strings.Replace(text, "\\n", "\n", -1)
-	text = strings.Replace(text, "\\\"", "\"", -1)
-
 	return fmt.Sprintf(text, args...)
 }
 
@@ -405,7 +401,7 @@ func BuiltinSprintf(scope Scope, args []Object) Object {
 	arguments := EvalArgs(scope, args)
 
 	if arguments[0].Value.Type != STNodeTypeStringLiteral {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	text := arguments[0].Value.Head
@@ -435,7 +431,7 @@ func BuiltinDo(scope Scope, arguments []Object) Object {
 	// no support for spread arguments yet
 	for _, a := range arguments {
 		if a.Type != ObjectTypeBuiltinArgument {
-			return Builtins.Identifiers[UNDEFINED]
+			return UndefinedObject()
 		}
 	}
 
@@ -482,13 +478,13 @@ func BuiltinSleep(scope Scope, arguments []Object) Object {
 
 	if argobjects[0].Type != ObjectTypeLiteral ||
 		argobjects[0].Value.Type != STNodeTypeNumberLiteral {
-		return Builtins.Identifiers[UNDEFINED]
+		return UndefinedObject()
 	}
 
 	duration, _ := strconv.ParseFloat(argobjects[0].Value.Head, 64)
 	time.Sleep(time.Duration(duration) * time.Millisecond)
 
-	return Builtins.Identifiers[UNDEFINED]
+	return UndefinedObject()
 }
 
 // objectToBoolean: Convert a Object to a boolean. This function defines the
@@ -516,9 +512,9 @@ func objectToBoolean(obj Object) bool {
 // the function returns the result of the expression that is evaluated, or
 // UNDEFINED
 func BuiltinIf(scope Scope, args []Object) Object {
-	arguments := []Object{Builtins.Identifiers[UNDEFINED]}
+	arguments := []Object{UndefinedObject()}
 
-	if len(args) == 0 { return Builtins.Identifiers[UNDEFINED] }
+	if len(args) == 0 { return UndefinedObject() }
 
 	if args[0].Type == ObjectTypeBuiltinArgument {
 		argscope := MakeScope(&scope)
@@ -538,7 +534,7 @@ func BuiltinIf(scope Scope, args []Object) Object {
 	if len(arguments) > 2 { return arguments[2] }
 	if len(args) > 2 { return EvalArgs(scope, args[2:3])[0] }
 
-	return Builtins.Identifiers[UNDEFINED]
+	return UndefinedObject()
 }
 
 // BuiltinWhen: the builtin 'when' function. This function takes a set of predicate-body
@@ -548,7 +544,7 @@ func BuiltinIf(scope Scope, args []Object) Object {
 func BuiltinWhen(scope Scope, args []Object) Object {
 	for _, arg := range args {
 		if arg.Type != ObjectTypeBuiltinArgument {
-			return Builtins.Identifiers[UNDEFINED]
+			return UndefinedObject()
 		}
 	}
 
@@ -556,12 +552,12 @@ func BuiltinWhen(scope Scope, args []Object) Object {
 	for _, arg := range args {
 		obj := Eval(scp, arg.Value)
 		if objectToBoolean(obj) {
-			if arg.Value.Zip == nil { return Builtins.Identifiers[UNDEFINED] }
+			if arg.Value.Zip == nil { return UndefinedObject() }
 			return Eval(scp, *arg.Value.Zip)
 		}
 	}
 
-	return Builtins.Identifiers[UNDEFINED]
+	return UndefinedObject()
 }
 
 // BuiltinComparisonFunction: This function produces a builtin comparison function
@@ -574,7 +570,7 @@ func BuiltinComparisonFunction(op string) Object {
 	fn := func (scope Scope, args []Object) Object {
 		arguments := EvalArgs(scope, args)
 		if len(arguments) != 2 {
-			return Builtins.Identifiers[UNDEFINED]
+			return UndefinedObject()
 		}
 
 		// TODO handle lists?
@@ -598,7 +594,7 @@ func BuiltinComparisonFunction(op string) Object {
 
 		argtype := arguments[0].Value.Type
 		if arguments[1].Value.Type != argtype {
-			return Builtins.Identifiers[UNDEFINED]
+			return UndefinedObject()
 		}
 
 		str1, str2 := "", ""
