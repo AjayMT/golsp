@@ -74,7 +74,9 @@ func readUntil(scope g.Scope, args []g.Object) g.Object {
 	index := int(indexf)
 	delim, _ := g.ToString(arguments[1])
 
-	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
+	if index < 0 || index >= len(openFiles) || len(delim) == 0 {
+		return g.UndefinedObject()
+	}
 
 	readwriter := openFiles[index]
 	if readwriter.Reader == nil { return g.UndefinedObject() }
