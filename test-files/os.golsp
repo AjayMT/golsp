@@ -2,9 +2,14 @@
 const os [require "stdlib/os.golsp"]
 const types [require "stdlib/types.golsp"]
 
-def fd [when
+def rf [when
   [== [__args__ 0] "-"]: os.stdin
   1: [os.open [__args__ 0]]
 ]
 
-printf "contents:\n\"\"\"\n%v\n\"\"\"\n" [os.readAll fd]
+def wf [when
+  [__args__ 1]: [os.open [__args__ 1]]
+  1: os.stdout
+]
+
+os.write wf [os.readAll rf]

@@ -18,7 +18,7 @@ func open(scope g.Scope, args []g.Object) g.Object {
 	arguments := g.EvalArgs(scope, args)
 	filename, _ := g.ToString(arguments[0])
 
-	f, err := os.Open(filename)
+	f, err := os.OpenFile(filename, os.O_RDWR | os.O_CREATE, 0755)
 	if err != nil { return g.UndefinedObject() }
 
 	reader := bufio.NewReader(f)
@@ -33,7 +33,6 @@ func read(scope g.Scope, args []g.Object) g.Object {
 	indexf, _ := g.ToNumber(arguments[0])
 	nf, _ := g.ToNumber(arguments[1])
 	index, n := int(indexf), int(nf)
-
 	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
 	if n < 0 { return g.UndefinedObject() }
 
@@ -51,7 +50,6 @@ func readAll(scope g.Scope, args []g.Object) g.Object {
 	arguments := g.EvalArgs(scope, args)
 	indexf, _ := g.ToNumber(arguments[0])
 	index := int(indexf)
-
 	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
 
 	readwriter := openFiles[index]
@@ -73,7 +71,6 @@ func readUntil(scope g.Scope, args []g.Object) g.Object {
 	indexf, _ := g.ToNumber(arguments[0])
 	index := int(indexf)
 	delim, _ := g.ToString(arguments[1])
-
 	if index < 0 || index >= len(openFiles) || len(delim) == 0 {
 		return g.UndefinedObject()
 	}
@@ -87,7 +84,31 @@ func readUntil(scope g.Scope, args []g.Object) g.Object {
 	return g.StringObject(string(bytes[:len(bytes) - 1]))
 }
 
-func write(_ g.Scope, args []g.Object) g.Object {
+func write(scope g.Scope, args []g.Object) g.Object {
+	arguments := g.EvalArgs(scope, args)
+	str, _ := g.ToString(arguments[1])
+	indexf, _ := g.ToNumber(arguments[0])
+	index := int(indexf)
+	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
+
+	readwriter := openFiles[index]
+	if readwriter.Writer == nil { return g.UndefinedObject() }
+
+	nwritten, err := readwriter.Writer.WriteString(str)
+	if err != nil { return g.UndefinedObject() }
+
+	err = readwriter.Writer.Flush()
+	if err != nil { return g.UndefinedObject() }
+
+	return g.NumberObject(float64(nwritten))
+}
+
+func seek(_ g.Scope, args []g.Object) g.Object {
+	// TODO
+	return g.UndefinedObject()
+}
+
+func stat(_ g.Scope, args []g.Object) g.Object {
 	// TODO
 	return g.UndefinedObject()
 }
@@ -108,5 +129,7 @@ var Exports = g.MapObject(map[string]g.Object{
 	"readAll": g.BuiltinFunctionObject("readAll", readAll),
 	"readUntil": g.BuiltinFunctionObject("readUntil", readUntil),
 	"write": g.BuiltinFunctionObject("write", write),
+	"seek": g.BuiltinFunctionObject("seek", seek),
+	"stat": g.BuiltinFunctionObject("stat", stat),
 	"exit": g.BuiltinFunctionObject("exit", exit),
 })
