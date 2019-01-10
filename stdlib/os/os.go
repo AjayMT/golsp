@@ -8,10 +8,16 @@ import (
 	g "github.com/ajaymt/golsp/core"
 )
 
-var openFiles = []*bufio.ReadWriter{
-	bufio.NewReadWriter(bufio.NewReader(os.Stdin), nil),
-	bufio.NewReadWriter(nil, bufio.NewWriter(os.Stdout)),
-	bufio.NewReadWriter(nil, bufio.NewWriter(os.Stderr)),
+type file struct {
+	file *os.File
+	reader *bufio.Reader
+	writer *bufio.Writer
+}
+
+var openFiles = []file{
+	file{file: os.Stdin, reader: bufio.NewReader(os.Stdin), writer: nil},
+	file{file: os.Stdout, reader: nil, writer: bufio.NewWriter(os.Stdout)},
+	file{file: os.Stderr, reader: nil, writer: bufio.NewWriter(os.Stderr)},
 }
 
 func open(scope g.Scope, args []g.Object) g.Object {
@@ -23,7 +29,7 @@ func open(scope g.Scope, args []g.Object) g.Object {
 
 	reader := bufio.NewReader(f)
 	writer := bufio.NewWriter(f)
-	openFiles = append(openFiles, bufio.NewReadWriter(reader, writer))
+	openFiles = append(openFiles, file{file: f, reader: reader, writer: writer})
 
 	return g.NumberObject(float64(len(openFiles) - 1))
 }
@@ -37,10 +43,10 @@ func read(scope g.Scope, args []g.Object) g.Object {
 	if n < 0 { return g.UndefinedObject() }
 
 	readwriter := openFiles[index]
-	if readwriter.Reader == nil { return g.UndefinedObject() }
+	if readwriter.reader == nil { return g.UndefinedObject() }
 
 	bytes := make([]byte, n)
-	_, err := readwriter.Reader.Read(bytes)
+	_, err := readwriter.reader.Read(bytes)
 	if err != nil && err != io.EOF { return g.UndefinedObject() }
 
 	return g.StringObject(string(bytes))
@@ -53,11 +59,11 @@ func readAll(scope g.Scope, args []g.Object) g.Object {
 	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
 
 	readwriter := openFiles[index]
-	if readwriter.Reader == nil { return g.UndefinedObject() }
+	if readwriter.reader == nil { return g.UndefinedObject() }
 
 	bytes := make([]byte, 0)
-	b, err := readwriter.Reader.ReadByte()
-	for ; err == nil; b, err = readwriter.Reader.ReadByte() {
+	b, err := readwriter.reader.ReadByte()
+	for ; err == nil; b, err = readwriter.reader.ReadByte() {
 		bytes = append(bytes, b)
 	}
 
@@ -76,9 +82,9 @@ func readUntil(scope g.Scope, args []g.Object) g.Object {
 	}
 
 	readwriter := openFiles[index]
-	if readwriter.Reader == nil { return g.UndefinedObject() }
+	if readwriter.reader == nil { return g.UndefinedObject() }
 
-	bytes, err := readwriter.Reader.ReadBytes(delim[0])
+	bytes, err := readwriter.reader.ReadBytes(delim[0])
 	if err != nil && err != io.EOF { return g.UndefinedObject() }
 
 	return g.StringObject(string(bytes[:len(bytes) - 1]))
@@ -92,25 +98,50 @@ func write(scope g.Scope, args []g.Object) g.Object {
 	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
 
 	readwriter := openFiles[index]
-	if readwriter.Writer == nil { return g.UndefinedObject() }
+	if readwriter.writer == nil { return g.UndefinedObject() }
 
-	nwritten, err := readwriter.Writer.WriteString(str)
+	nwritten, err := readwriter.writer.WriteString(str)
 	if err != nil { return g.UndefinedObject() }
 
-	err = readwriter.Writer.Flush()
+	err = readwriter.writer.Flush()
 	if err != nil { return g.UndefinedObject() }
 
 	return g.NumberObject(float64(nwritten))
 }
 
-func seek(_ g.Scope, args []g.Object) g.Object {
-	// TODO
-	return g.UndefinedObject()
+func seek(scope g.Scope, args []g.Object) g.Object {
+	arguments := g.EvalArgs(scope, args)
+	indexf, _ := g.ToNumber(arguments[0])
+	index := int(indexf)
+	if index < 0 || index >= len(openFiles) { return g.UndefinedObject() }
+	posf, _ := g.ToNumber(arguments[1])
+	pos := int64(posf)
+	if pos < 0 { return g.UndefinedObject() }
+	whencef, _ := g.ToNumber(arguments[2])
+	whence := int(whencef)
+	if whence < 0 || whence > 2 { return g.UndefinedObject() }
+
+	file := openFiles[index]
+	newpos, err := file.file.Seek(pos, whence)
+	if err != nil { return g.UndefinedObject() }
+
+	return g.NumberObject(float64(newpos))
 }
 
-func stat(_ g.Scope, args []g.Object) g.Object {
-	// TODO
-	return g.UndefinedObject()
+func stat(scope g.Scope, args []g.Object) g.Object {
+	arguments := g.EvalArgs(scope, args)
+	filename, _ := g.ToString(arguments[0])
+
+	fileinfo, err := os.Stat(filename)
+	if err != nil { return g.UndefinedObject() }
+	isDir := 0.0
+	if fileinfo.IsDir() { isDir = 1.0 }
+
+	return g.MapObject(map[string]g.Object{
+		"name": g.StringObject(fileinfo.Name()),
+		"size": g.NumberObject(float64(fileinfo.Size())),
+		"isDir": g.NumberObject(isDir),
+	})
 }
 
 func exit(scope g.Scope, args []g.Object) g.Object {

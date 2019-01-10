@@ -1,0 +1,8 @@
+
+const os [require "stdlib/os.golsp"]
+
+printf "stat: %v\n" [os.stat [__args__ 0]]
+const fp [os.open [__args__ 0]]
+printf "contents: %v\n" [os.readAll fp]
+os.seek fp 0
+printf "contents again: %v\n" [os.readAll fp]

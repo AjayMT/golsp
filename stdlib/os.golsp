@@ -18,6 +18,14 @@ const [write index str] [when
   [* [isn index] [iss str]]: [base.write index str]
 ]
 
+def [seek index pos whence] [when
+  [* [isn index] [isn pos] [isn whence]]: [base.seek index pos whence]
+]
+def [seek index pos] [seek index pos 0]
+const seek seek
+
+const [stat filename] [when [iss filename]: [base.stat filename]]
+
 const [exit n] [when [isn n]: [base.exit n]]
 
 # exports
@@ -30,5 +38,7 @@ const [exit n] [when [isn n]: [base.exit n]]
   "readAll": readAll
   "readUntil": readUntil
   "write": write
+  "seek": seek
+  "stat": stat
   "exit": exit
 )
