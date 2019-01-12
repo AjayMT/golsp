@@ -11,9 +11,10 @@ const [panic msg] [do
 
 def [fmt { obj }] [fmt obj]
 [def [fmt { contents... }]
-  _.join " " { "[" [_.map { sprintf "%v" } contents]... "]" }
+  _.join " " { "[" contents... "]" }
 ]
 def [fmt obj] [sprintf "%v" obj]
+
 
 const [assert stmt...] [do
   const result [if [== 1 [_.len stmt]] [stmt 0] [stmt...]]
@@ -21,6 +22,7 @@ const [assert stmt...] [do
     panic [sprintf "failed assertion: %v\nfound: %v\n" [fmt stmt] result]
   ]
 ]
+
 
 # exports
 assert

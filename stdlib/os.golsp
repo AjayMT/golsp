@@ -4,8 +4,10 @@ const types [require "./types.golsp"]
 const isn types.isNumber
 const iss types.isString
 
+
 const [open fname] [when [iss fname]: [base.open fname]]
 const [create fname] [when [iss fname]: [base.create fname]]
+
 
 const [read index n] [when
   [* [isn index] [isn n]]: [base.read index n]
@@ -15,9 +17,11 @@ const [readUntil index delim] [when
   [* [isn index] [iss delim]]: [base.readUntil index delim]
 ]
 
+
 const [write index str] [when
   [* [isn index] [iss str]]: [base.write index str]
 ]
+
 
 def [seek index pos whence] [when
   [* [isn index] [isn pos] [isn whence]]: [base.seek index pos whence]
@@ -25,11 +29,15 @@ def [seek index pos whence] [when
 def [seek index pos] [seek index pos 0]
 const seek seek
 
+
 const [stat filename] [when [iss filename]: [base.stat filename]]
+
 
 const [readDir dirname] [when [iss dirname]: [base.readDir dirname]]
 
+
 const [exit n] [when [isn n]: [base.exit n]]
+
 
 # exports
 (
