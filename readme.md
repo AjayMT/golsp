@@ -7,7 +7,7 @@ printf "Hello, world!\n"
 
 Golsp is a simple, interpreted lisp-like programming language. It is not intended to be fast, efficient or particularly sophisticated -- I wrote this as an exercise in programming language design, and for fun. As such, the language itself (`core/`) is feature complete (aside from a few trivial `TODO`s) and all that remains unfinished is the standard library.
 
-Documentation coming soon!
+<http://ajaymt.github.io/golsp>
 
 **Table of contents**
 - [Syntax and features](#syntax_and_features)
