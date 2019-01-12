@@ -375,7 +375,7 @@ func SpreadNode(scope Scope, node STNode) List {
 // identifiers
 func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
 	currentarg := argobjects.First
-	for i := 0; i < len(pattern); i, currentarg = i + 1, argobjects.Next(currentarg, i) {
+	for i := 0; i < len(pattern); currentarg, i = argobjects.Next(currentarg, i), i + 1 {
 		symbol := pattern[i]
 		if symbol.Type == STNodeTypeStringLiteral || symbol.Type == STNodeTypeNumberLiteral {
 			continue

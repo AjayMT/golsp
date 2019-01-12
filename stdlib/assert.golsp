@@ -1,14 +1,25 @@
 
 const os [require "./os.golsp"]
+const _ [require "./tools.golsp"]
+
 
 const [panic msg] [do
   os.write os.stderr [sprintf "%v" msg]
   os.exit 1
 ]
 
+
+def [fmt { obj }] [fmt obj]
+[def [fmt { contents... }]
+  _.join " " { "[" [_.map { sprintf "%v" } contents]... "]" }
+]
+def [fmt obj] [sprintf "%v" obj]
+
 const [assert stmt...] [do
-  const result [stmt...]
-  if result result [panic [sprintf "failed assertion: %v\nresult: %v\n" stmt result]]
+  const result [if [== 1 [_.len stmt]] [stmt 0] [stmt...]]
+  [if result result
+    panic [sprintf "failed assertion: %v\nfound: %v\n" [fmt stmt] result]
+  ]
 ]
 
 # exports

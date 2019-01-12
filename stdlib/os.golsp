@@ -5,6 +5,7 @@ const isn types.isNumber
 const iss types.isString
 
 const [open fname] [when [iss fname]: [base.open fname]]
+const [create fname] [when [iss fname]: [base.create fname]]
 
 const [read index n] [when
   [* [isn index] [isn n]]: [base.read index n]
@@ -36,6 +37,7 @@ const [exit n] [when [isn n]: [base.exit n]]
   "stdout": base.stdout
   "stderr": base.stderr
   "open": open
+  "create": create
   "read": read
   "readAll": readAll
   "readUntil": readUntil

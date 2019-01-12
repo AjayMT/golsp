@@ -21,11 +21,13 @@ var openFiles = []file{
 	file{file: os.Stderr, reader: nil, writer: bufio.NewWriter(os.Stderr)},
 }
 
-func open(scope g.Scope, args []g.Object) g.Object {
+func cropen(scope g.Scope, args []g.Object, create bool) g.Object {
 	arguments := g.EvalArgs(scope, args)
 	filename, _ := g.ToString(arguments[0])
 
-	f, err := os.OpenFile(filename, os.O_RDWR | os.O_CREATE, 0755)
+	mode := os.O_RDWR
+	if create { mode = os.O_RDWR | os.O_CREATE }
+	f, err := os.OpenFile(filename, mode, 0755)
 	if err != nil { return g.UndefinedObject() }
 
 	reader := bufio.NewReader(f)
@@ -34,6 +36,9 @@ func open(scope g.Scope, args []g.Object) g.Object {
 
 	return g.NumberObject(float64(len(openFiles) - 1))
 }
+
+func open(s g.Scope, a []g.Object) g.Object { return cropen(s, a, false) }
+func create(s g.Scope, a []g.Object) g.Object { return cropen(s, a, true) }
 
 func read(scope g.Scope, args []g.Object) g.Object {
 	arguments := g.EvalArgs(scope, args)
@@ -181,6 +186,7 @@ var Exports = g.MapObject(map[string]g.Object{
 	"stdout": g.NumberObject(1.0),
 	"stderr": g.NumberObject(2.0),
 	"open": g.BuiltinFunctionObject("open", open),
+	"create": g.BuiltinFunctionObject("create", create),
 	"read": g.BuiltinFunctionObject("read", read),
 	"readAll": g.BuiltinFunctionObject("readAll", readAll),
 	"readUntil": g.BuiltinFunctionObject("readUntil", readUntil),

@@ -1,0 +1,5 @@
+
+const assert [require "stdlib/assert.golsp"]
+const _ [require "stdlib/tools.golsp"]
+
+assert undefined assert

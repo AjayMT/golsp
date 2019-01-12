@@ -45,6 +45,9 @@ def [compose input { head tail... }] [compose [head... input] tail]
 def [compose input functions...] [compose input functions]
 const compose compose
 
+
+def [join _ {}] ""
+def [join sep { head tail... }] [sprintf "%v%v%v" head sep [join sep tail]]
 # TODO foldl foldr
 
 # exports
@@ -54,4 +57,5 @@ const compose compose
   "filter": filter
   "range": range
   "compose": compose
+  "join": join
 )

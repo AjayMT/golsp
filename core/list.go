@@ -96,8 +96,8 @@ func (l *List) Copy() List {
 func (l *List) Append(obj Object) {
 	newitem := Item{Object: obj}
 	defer func() {
-		l.Length++
 		l.Last = &newitem
+		l.Length++
 	}()
 
 	if l.Length == 0 {
@@ -115,12 +115,16 @@ func (l *List) Append(obj Object) {
 }
 
 func (self *List) Join(other List) {
+	if (other.Length == 0) { return }
+
 	defer func() {
+		if (other.Length == 0) { return }
+
 		for index, branch := range other.branches {
 			self.branches[index + self.Length] = branch
 		}
-		self.Length += other.Length
 		self.Last = other.Last
+		self.Length += other.Length
 	}()
 
 	if self.Length == 0 {
