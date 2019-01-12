@@ -1,0 +1,7 @@
+
+const assert [require "stdlib/assert.golsp"]
+
+const a 1
+assert a
+assert == a 1
+assert == a 2

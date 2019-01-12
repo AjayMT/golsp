@@ -1,0 +1,15 @@
+
+const os [require "./os.golsp"]
+
+const [panic msg] [do
+  os.write os.stderr [sprintf "%v" msg]
+  os.exit 1
+]
+
+const [assert stmt...] [do
+  const result [stmt...]
+  if result result [panic [sprintf "failed assertion: %v\nresult: %v\n" stmt result]]
+]
+
+# exports
+assert

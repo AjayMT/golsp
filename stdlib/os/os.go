@@ -4,6 +4,7 @@ package main
 import (
 	"os"
 	"io"
+	"io/ioutil"
 	"bufio"
 	g "github.com/ajaymt/golsp/core"
 )
@@ -128,20 +129,44 @@ func seek(scope g.Scope, args []g.Object) g.Object {
 	return g.NumberObject(float64(newpos))
 }
 
+func fileInfoToObject(fi os.FileInfo) g.Object {
+	isDir := 0.0
+	if fi.IsDir() { isDir = 1.0 }
+
+	return g.MapObject(map[string]g.Object{
+		"name": g.StringObject(fi.Name()),
+		"size": g.NumberObject(float64(fi.Size())),
+		"isDir": g.NumberObject(isDir),
+	})
+}
+
 func stat(scope g.Scope, args []g.Object) g.Object {
 	arguments := g.EvalArgs(scope, args)
 	filename, _ := g.ToString(arguments[0])
 
 	fileinfo, err := os.Stat(filename)
 	if err != nil { return g.UndefinedObject() }
-	isDir := 0.0
-	if fileinfo.IsDir() { isDir = 1.0 }
 
-	return g.MapObject(map[string]g.Object{
-		"name": g.StringObject(fileinfo.Name()),
-		"size": g.NumberObject(float64(fileinfo.Size())),
-		"isDir": g.NumberObject(isDir),
-	})
+	return fileInfoToObject(fileinfo)
+}
+
+func readDir(scope g.Scope, args []g.Object) g.Object {
+	arguments := g.EvalArgs(scope, args)
+	dirname, _ := g.ToString(arguments[0])
+
+	dirinfo, err := ioutil.ReadDir(dirname);
+	if err != nil { return g.UndefinedObject() }
+
+	contents := g.List{}
+	for _, file := range dirinfo {
+		contents.Append(fileInfoToObject(file))
+	}
+
+	// TODO write a list-object contructor?
+	return g.Object{
+		Type: g.ObjectTypeList,
+		Elements: contents,
+	}
 }
 
 func exit(scope g.Scope, args []g.Object) g.Object {
@@ -162,5 +187,6 @@ var Exports = g.MapObject(map[string]g.Object{
 	"write": g.BuiltinFunctionObject("write", write),
 	"seek": g.BuiltinFunctionObject("seek", seek),
 	"stat": g.BuiltinFunctionObject("stat", stat),
+	"readDir": g.BuiltinFunctionObject("readDir", readDir),
 	"exit": g.BuiltinFunctionObject("exit", exit),
 })

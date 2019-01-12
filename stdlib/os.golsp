@@ -26,6 +26,8 @@ const seek seek
 
 const [stat filename] [when [iss filename]: [base.stat filename]]
 
+const [readDir dirname] [when [iss dirname]: [base.readDir dirname]]
+
 const [exit n] [when [isn n]: [base.exit n]]
 
 # exports
@@ -40,5 +42,6 @@ const [exit n] [when [isn n]: [base.exit n]]
   "write": write
   "seek": seek
   "stat": stat
+  "readDir": readDir
   "exit": exit
 )
