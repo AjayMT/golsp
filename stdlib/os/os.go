@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"bufio"
 	g "github.com/ajaymt/golsp/core"
-	"fmt"
 )
 
 type file struct {
