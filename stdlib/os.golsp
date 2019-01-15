@@ -9,6 +9,13 @@ const [open fname] [when [iss fname]: [base.open fname]]
 const [create fname] [when [iss fname]: [base.create fname]]
 
 
+const [remove fname] [when [iss fname]: [base.remove fname]]
+const [removeAll fname] [when [iss fname]: [base.removeAll fname]]
+
+
+const [mkdir fname] [when [iss fname]: [base.mkdir fname]]
+
+
 const [read index n] [when
   [* [isn index] [isn n]]: [base.read index n]
 ]
@@ -46,6 +53,9 @@ const [exit n] [when [isn n]: [base.exit n]]
   "stderr": base.stderr
   "open": open
   "create": create
+  "remove": remove
+  "removeAll": removeAll
+  "mkdir": mkdir
   "read": read
   "readAll": readAll
   "readUntil": readUntil

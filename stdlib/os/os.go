@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"bufio"
 	g "github.com/ajaymt/golsp/core"
+	"fmt"
 )
 
 type file struct {
@@ -27,7 +28,7 @@ func cropen(scope g.Scope, args []g.Object, create bool) g.Object {
 
 	mode := os.O_RDWR
 	if create { mode = os.O_RDWR | os.O_CREATE }
-	f, err := os.OpenFile(filename, mode, 0755)
+	f, err := os.OpenFile(filename, mode, 0644)
 	if err != nil { return g.UndefinedObject() }
 
 	reader := bufio.NewReader(f)
@@ -39,6 +40,31 @@ func cropen(scope g.Scope, args []g.Object, create bool) g.Object {
 
 func open(s g.Scope, a []g.Object) g.Object { return cropen(s, a, false) }
 func create(s g.Scope, a []g.Object) g.Object { return cropen(s, a, true) }
+
+func rm(scope g.Scope, args []g.Object, all bool) g.Object {
+	arguments := g.EvalArgs(scope, args)
+	path, _ := g.ToString(arguments[0])
+
+	rmf := os.Remove
+	if all { rmf = os.RemoveAll }
+	err := rmf(path)
+	if err != nil { return g.NumberObject(0.0) }
+
+	return g.NumberObject(1.0)
+}
+
+func remove(s g.Scope, a []g.Object) g.Object { return rm(s, a, false) }
+func removeAll(s g.Scope, a []g.Object) g.Object { return rm(s, a, true) }
+
+func mkdir(scope g.Scope, args []g.Object) g.Object {
+	arguments := g.EvalArgs(scope, args)
+	path, _ := g.ToString(arguments[0])
+
+	err := os.MkdirAll(path, 0755)
+	if err != nil { return g.NumberObject(0.0) }
+
+	return g.NumberObject(1.0)
+}
 
 func read(scope g.Scope, args []g.Object) g.Object {
 	arguments := g.EvalArgs(scope, args)
@@ -187,6 +213,9 @@ var Exports = g.MapObject(map[string]g.Object{
 	"stderr": g.NumberObject(2.0),
 	"open": g.BuiltinFunctionObject("open", open),
 	"create": g.BuiltinFunctionObject("create", create),
+	"remove": g.BuiltinFunctionObject("remove", remove),
+	"removeAll": g.BuiltinFunctionObject("removeAll", removeAll),
+	"mkdir": g.BuiltinFunctionObject("mkdir", mkdir),
 	"read": g.BuiltinFunctionObject("read", read),
 	"readAll": g.BuiltinFunctionObject("readAll", readAll),
 	"readUntil": g.BuiltinFunctionObject("readUntil", readUntil),

@@ -1,0 +1,23 @@
+
+const os [require "stdlib/os.golsp"]
+const assert [require "stdlib/assert.golsp"]
+
+printf "creating file './foo'... "
+def fp [os.create "./foo"]
+printf "done.\n"
+
+printf "writing to file... "
+os.write fp "hello"
+printf "done.\n"
+
+printf "creating directories ./bar/quux/baz... "
+assert os.mkdir "./bar/quux/baz"
+printf "done.\n"
+
+printf "remove? "
+def resp [os.readUntil os.stdin "\n"]
+
+if [== resp "y"] [do
+  os.remove "./foo"
+  os.removeAll "./bar"
+]
