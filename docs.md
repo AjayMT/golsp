@@ -1,4 +1,7 @@
 
+<!--  LocalWords:  Golsp foo baz quux doge printf ify docs boop
+ -->
+
 # Syntax
 Golsp has six basic types of syntax nodes:
 - comments
@@ -78,9 +81,8 @@ Expressions consist of two parts: an **expression head** and a list of **argumen
 
 Expressions evaluate to different things depending on the type of the expression head.
 
-If the expression head is a literal, the expression simply evaluates to the literal.
+If the expression head is a number, the expression simply evaluates to the number.
 ```python
-["hello" 1 2] # => "hello"
 [17 21 93 z b t] # => 17
 ```
 
@@ -90,7 +92,7 @@ If the expression head is a function, the function is applied to the arguments. 
 [+ "a" "b"] # => undefined
 ```
 
-If the expression head is a list or map, the expression evaluates to different things depending on the arguments (see [Lists](docs?id=lists) and [Maps](docs?id=maps).)
+If the expression head is a string, list or map, the expression evaluates to different things depending on the arguments (see [Lists](docs?id=lists) and [Maps](docs?id=maps).)
 
 ## Lists
 Lists are delimited by curly braces and can contain other syntax nodes.
@@ -100,8 +102,11 @@ Lists are delimited by curly braces and can contain other syntax nodes.
 { 1 2 3 { "a" "b" "c" } [foo baz] }
 ```
 
-If a list is an expression head (see [Expressions](docs?id=expressions)) with one or more arguments, it will be indexed or sliced as follows:
+If a list is an expression head (see [Expressions](docs?id=expressions)), it can be indexed and sliced as follows:
 ```python
+# if no arguments are provided, the expression evaluates to the list
+[{ 1 2 3 }] # => { 1 2 3 }
+
 # list indices begin at 0
 [{ 1 2 3 } 0] # => 1
 
@@ -114,12 +119,14 @@ If a list is an expression head (see [Expressions](docs?id=expressions)) with on
 # `undefined` will slice until the end of the list
 [{ 1 2 3 4 5 6 } 0 undefined] # => { 1 2 3 4 5 6 }
 
-@ a third argument produces a slice with a step
+# a third argument produces a slice with a step
 [{ 1 2 3 4 5 6 } 0 undefined 2] # => { 1 3 5 }
 
 # steps can be negative, which will reverse the list
 [{ 1 2 3 4 5 6 } -1 undefined -2] # => { 6 4 2 }
 ```
+
+**Strings** can also be indexed and sliced like lists.
 
 Golsp does not automatically wrap lines in expressions inside lists. This means that the following code:
 ```python
@@ -164,8 +171,11 @@ The syntax nodes to the left of the zip operators are the keys, and those to the
 )
 ```
 
-If a map is an expression head with one or more arguments, those arguments will be looked up in the map.
+If a map is an expression head, the provided arguments will be looked up in the map.
 ```python
+# if no arguments are provided, the expression evaluates to the map itself
+[( "A":1 "b":"z" )] # => ( "A":1 "b":"z" )
+
 # providing a single argument produces a single value
 [( "a":1 "b":2 ) "b"] # => 2
 
