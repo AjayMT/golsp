@@ -93,7 +93,97 @@ If the expression head is a function, the function is applied to the arguments. 
 If the expression head is a list or map, the expression evaluates to different things depending on the arguments (see [Lists](docs?id=lists) and [Maps](docs?id=maps).)
 
 ## Lists
-TODO
+Lists are delimited by curly braces and can contain other syntax nodes.
+```python
+# this is a list containing numbers, a list of strings, and the
+# result of the expression `[foo baz]`:
+{ 1 2 3 { "a" "b" "c" } [foo baz] }
+```
+
+If a list is an expression head (see [Expressions](docs?id=expressions)) with one or more arguments, it will be indexed or sliced as follows:
+```python
+# list indices begin at 0
+[{ 1 2 3 } 0] # => 1
+
+# negative indices count backwards from the end of the list
+[{ 1 2 3 } -1] # => 3
+
+# two arguments (begin, inclusive and end, exclusive) slice the list
+[{ 1 2 3 4 } 0 2] # => { 1 2 }
+
+# `undefined` will slice until the end of the list
+[{ 1 2 3 4 5 6 } 0 undefined] # => { 1 2 3 4 5 6 }
+
+@ a third argument produces a slice with a step
+[{ 1 2 3 4 5 6 } 0 undefined 2] # => { 1 3 5 }
+
+# steps can be negative, which will reverse the list
+[{ 1 2 3 4 5 6 } -1 undefined -2] # => { 6 4 2 }
+```
+
+Golsp does not automatically wrap lines in expressions inside lists. This means that the following code:
+```python
+{
+  a b
+  c
+}
+```
+is **not** converted into this:
+```python
+{
+  [a b]
+  [c]
+}
+```
+This is because space-separated syntax nodes inside lists are usually intended to be separate list elements and not expressions.
 
 ## Maps
-TODO
+Maps are delimited by parentheses and can contain pairs of syntax nodes joined by zip operators (see [Zip](docs?id=zip)).
+```python
+(
+  "a": 1
+  "b": 2
+  "c": 3
+  4: "d"
+)
+```
+
+The syntax nodes to the left of the zip operators are the keys, and those to the right of the zip operators are the values. Keys can only be strings or numbers, but values can be any object.
+
+```python
+# this is a valid map
+(
+  "A": { 1 2 3 }
+  "b": "c"
+)
+
+# this is not a valid map, since lists cannot be keys
+(
+  { 1 2 3 }: "A"
+  "b": 2
+)
+```
+
+If a map is an expression head with one or more arguments, those arguments will be looked up in the map.
+```python
+# providing a single argument produces a single value
+[( "a":1 "b":2 ) "b"] # => 2
+
+# providing multiple arguments produces a list of values
+[( "Cat":"z00t" "beep":"boop" 4:"quux" ) "beep" 4 "foo"] # => { "boop" "quux" undefined }
+```
+
+Like in [lists](docs?id=lists), Golsp does not automatically wrap lines in expressions inside maps. So this:
+```python
+(
+  "a": "b"
+  "c": "d"
+)
+```
+is **not** the same as this:
+```python
+(
+  ["a": "b"]
+  ["c": "d"]
+)
+```
