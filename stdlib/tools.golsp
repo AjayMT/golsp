@@ -47,7 +47,24 @@ const compose compose
 
 
 def [join _ {}] ""
+def [join sep { head }] head
 def [join sep { head tail... }] [sprintf "%v%v%v" head sep [join sep tail]]
+const join join
+
+
+def [split f {}] {}
+def [split f { head tail... }] [do
+  const rest [split f tail]
+  [if [f... head]
+    { {} rest... }
+    { { head [rest 0]... } [rest 1 undefined]... }
+  ]
+]
+def [split f s] [when
+  [types.isString s]: [map { join "" } [split f { s... }]]
+]
+const split split
+
 # TODO foldl foldr
 
 # exports
@@ -58,4 +75,5 @@ def [join sep { head tail... }] [sprintf "%v%v%v" head sep [join sep tail]]
   "range": range
   "compose": compose
   "join": join
+  "split": split
 )
