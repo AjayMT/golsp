@@ -237,7 +237,7 @@ By default, the zip operator has no effect outside a map (except for the builtin
 [foo]:bar # => this evaluates to the result of [foo]
 ```
 
-The zip operator can be used in conjunction with the [spread](docs/id=spread) operator to 'zip' together multiple keys and values inside map:
+The zip operator can be used in conjunction with the [spread](docs?id=spread) operator to 'zip' together multiple keys and values inside map:
 ```python
 (
   {"a" "b" "c" "d"}... : { 1 2 3 }...
