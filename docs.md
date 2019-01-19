@@ -1,8 +1,7 @@
 
-<!--  LocalWords:  Golsp foo baz quux doge printf ify docs boop
- -->
-
 # Syntax
+
+## Syntax nodes
 Golsp has six basic types of syntax nodes:
 - comments
 - identifiers
@@ -11,12 +10,7 @@ Golsp has six basic types of syntax nodes:
 - lists
 - maps
 
-Golsp has three operators:
-- spread
-- zip
-- dot
-
-## Comments
+### Comments
 Comments in Golsp begin with `#` and end with a newline. Comments have no semantic meaning.
 ```python
 # this is a comment
@@ -24,13 +18,13 @@ foo bar baz # this is a comment that begins in the middle of a line
 
 ```
 
-## Identifiers
+### Identifiers
 Identifiers are space-separated tokens that evaluate to values (literals, functions, lists, maps or `undefined`). Identifiers can contain all characters except syntactic delimiters and operators.
 ```python
 a b c quux z00t # these are identifiers
 ```
 
-## Literals
+### Literals
 Literals can be of two types: **strings** and **numbers**.
 
 String literals are delimited by `"`.
@@ -43,7 +37,7 @@ Numbers are contiguous groups of numeric characters surrounded by spaces or synt
 1 2 3 4.5 -6 -7.8 # these are numbers
 ```
 
-## Expressions
+### Expressions
 Expressions are delimited by square brackets and can contain other syntax nodes.
 ```python
 [a b c 12 "hello"] # this is an expression
@@ -94,7 +88,7 @@ If the expression head is a function, the function is applied to the arguments. 
 
 If the expression head is a string, list or map, the expression evaluates to different things depending on the arguments (see [Lists](docs?id=lists) and [Maps](docs?id=maps).)
 
-## Lists
+### Lists
 Lists are delimited by curly braces and can contain other syntax nodes.
 ```python
 # this is a list containing numbers, a list of strings, and the
@@ -142,9 +136,9 @@ is **not** converted into this:
   [c]
 }
 ```
-This is because space-separated syntax nodes inside lists are usually intended to be separate list elements and not expressions.
+This is because a line of space-separated syntax nodes (like `a b` in the example above) inside a list is usually meant to be multiple separate elements rather than being a single expression.
 
-## Maps
+### Maps
 Maps are delimited by parentheses and can contain pairs of syntax nodes joined by zip operators (see [Zip](docs?id=zip)).
 ```python
 (
@@ -183,7 +177,7 @@ If a map is an expression head, the provided arguments will be looked up in the 
 [( "Cat":"z00t" "beep":"boop" 4:"quux" ) "beep" 4 "foo"] # => { "boop" "quux" undefined }
 ```
 
-Like in [lists](docs?id=lists), Golsp does not automatically wrap lines in expressions inside maps. So this:
+Like with [lists](docs?id=lists), Golsp does not automatically wrap lines in expressions inside maps. So this:
 ```python
 (
   "a": "b"
@@ -196,4 +190,75 @@ is **not** the same as this:
   ["a": "b"]
   ["c": "d"]
 )
+```
+
+## Operators
+Golsp has three operators:
+- spread: `...`
+- zip: `:`
+- dot: `.`
+
+### Spread
+`...`
+
+The spread operator is a **postfix** operator that takes a list or string and distributes its contents into the surrounding expression. The operator has no effect on other types of values.
+```python
+# lists and strings are 'spread' into the surrounding expression
+# strings of multiple characters spread into multiple strings of single characters
+[{ 1 2 3 }...] # => [1 2 3]
+{ "abc"... } # => { "a" "b" "c" }
+
+# other types of values remain unchanged
+{ 1... } # => { 1 }
+```
+
+The spread operator can be used in conjunction with the [zip](docs?id=zip) operator to 'zip' multiple keys and values together inside maps:
+```python
+(
+  {"a" "b" "c" "d"}... : { 1 2 3 }...
+) # => ( "a":1 "b":2 "c":3 )
+```
+
+### Zip
+`:`
+
+The zip operator is an **infix** operator that pairs keys and values inside maps.
+```python
+(
+  "doge": "wow" # "doge" is paired with (i.e mapped to) "wow"
+  "quux": [z00t] # "quux" is paired with the result of the expression [z00t]
+  "asdf": { "z" "b" 2 } # "asdf" is paired with a list containing "z", "b" and 2
+)
+```
+
+By default, the zip operator has no effect outside a map (except for the builtin [when](docs?id=when) function). A pair of syntax nodes zipped together will evaluate to the value of the first node.
+```python
+"A": 2 # => this simply evaluates to "A"
+[foo]:bar # => this evaluates to the result of [foo]
+```
+
+The zip operator can be used in conjunction with the [spread](docs/id=spread) operator to 'zip' together multiple keys and values inside map:
+```python
+(
+  {"a" "b" "c" "d"}... : { 1 2 3 }...
+) # => ( "a":1 "b":2 "c":3 )
+```
+
+### Dot
+`.`
+
+The dot operator is an **infix** operator that looks up string keys in a map.
+```python
+def mymap ( "a":1 "b":2 "c":3 )
+
+# this is effectively the same as [mymap "a"]
+mymap.a # => 1
+
+mymap.z # => undefined
+```
+
+The dot operator is not defined on non-map objects.
+```python
+def a 1
+a.baz # => undefined
 ```
