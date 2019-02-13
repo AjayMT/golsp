@@ -263,7 +263,9 @@ a.baz # => undefined
 ```
 
 # Builtins
-## Identifiers
+These identifiers are defined in the outermost scope by the Golsp interpreter.
+
+## Variables
 ### undefined
 The `undefined` identifier behaves much like a literal. It evaluates to itself and is generally the result of a failed or undefined operation, such as:
 - looking up a key that does not exist in a map
@@ -361,7 +363,7 @@ getName ( "name":"Zaphod Beeblebrox" "z00t":"qwer" ) # => undefined
 getName 13 # => undefined
 ```
 
-The spread operator functions differently inside patterns: instead of spreading, it gathers lists and maps into a single identifier. This is best illustrated with an example:
+The spread operator functions differently inside patterns: instead of spreading, it gathers the contents of lists and maps into a single value. This is best illustrated with an example:
 ```python
 # this function returns the head of a list
 def [getHead { head tail... }] head
