@@ -410,7 +410,7 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
 
 				value, exists := currentarg.Object.Map[child.Head]
 				if !exists { continue }
-				fmt.Printf("value: %v key: %v\n", child.Zip.Head, value.Value.Head)
+
 				bindArguments(exprhead, []STNode{*child.Zip}, ListFromSlice([]Object{value}))
 				mapped[child.Head] = true
 			}
