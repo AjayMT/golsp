@@ -399,11 +399,8 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
 
 		if currentarg.Object.Type == ObjectTypeMap && symbol.Type == STNodeTypeMap {
 			// this is a giant mess. clean it up
-
 			mapped := make(map[string]bool)
-			mappatternindex := 0
-			for iterindex, child := range symbol.Children {
-				mappatternindex = iterindex
+			for _, child := range symbol.Children {
 				if !(child.Type == STNodeTypeNumberLiteral ||
 					child.Type == STNodeTypeStringLiteral) {
 					break
@@ -413,7 +410,7 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
 
 				value, exists := currentarg.Object.Map[child.Head]
 				if !exists { continue }
-
+				fmt.Printf("value: %v key: %v\n", child.Zip.Head, value.Value.Head)
 				bindArguments(exprhead, []STNode{*child.Zip}, ListFromSlice([]Object{value}))
 				mapped[child.Head] = true
 			}
@@ -427,9 +424,11 @@ func bindArguments(exprhead Object, pattern []STNode, argobjects List) {
 				}
 			}
 
-			patternkeys := symbol.Children[mappatternindex:]
+			patternkeys := make([]STNode, len(symbol.Children) - len(mapped))
 			patternvalues := make([]STNode, 0, len(patternkeys))
-			for _, c := range patternkeys {
+			for i := 0; i < len(patternkeys); i++ {
+				c := symbol.Children[i + len(mapped)]
+				patternkeys[i] = c
 				if c.Zip == nil { continue }
 				patternvalues = append(patternvalues, *c.Zip)
 			}
